@@ -91,3 +91,7 @@ $RECYCLE.BIN/
 # Project specific
 *.local
 openapi.json
+purgecss-report/
+
+# AI 작업 지침 (로컬 전용, 미공개)
+CLAUDE.md
