@@ -153,7 +153,9 @@ function readIdempotencyHeader(headers: InternalAxiosRequestConfig['headers']): 
       | string
       | undefined;
   }
-  return undefined;
+  const raw = headers as Record<string, unknown>;
+  const value = raw['X-Idempotency-Key'] ?? raw['x-idempotency-key'];
+  return typeof value === 'string' ? value : undefined;
 }
 
 function newIdempotencyKey(): string {
@@ -180,7 +182,11 @@ instance.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   if (config.data instanceof FormData) {
-    config.headers.delete('Content-Type');
+    if (typeof config.headers?.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else {
+      delete (config.headers as Record<string, unknown>)['Content-Type'];
+    }
   }
   const method = (config.method || 'get').toLowerCase();
   if (
@@ -191,7 +197,11 @@ instance.interceptors.request.use((config) => {
     if (!config.__idempotencyKey) {
       config.__idempotencyKey = newIdempotencyKey();
     }
-    config.headers.set('X-Idempotency-Key', config.__idempotencyKey);
+    if (typeof config.headers?.set === 'function') {
+      config.headers.set('X-Idempotency-Key', config.__idempotencyKey);
+    } else {
+      (config.headers as Record<string, unknown>)['X-Idempotency-Key'] = config.__idempotencyKey;
+    }
   }
   return config;
 });
@@ -301,7 +311,7 @@ instance.interceptors.response.use(
 );
 
 function toData<T>(response: AxiosResponse<T>): T {
-  const res = response?.data;
+  const res = (response?.data ?? response) as T;
   // 백엔드 표준은 200+JSON이지만, 과거/프록시/예외 케이스에서 204 또는 빈 바디가 올 수 있어 보수적으로 폴백.
   if ((response?.status === 204 || response?.data == null) && res == null) {
     return { code: 'OK', data: null } as T;

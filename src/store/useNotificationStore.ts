@@ -1,7 +1,6 @@
 // 알림 전역 상태: 목록·미읽음 수·토스트·SSE 중복 방지용 seen 집합.
 import { create } from 'zustand';
 import { api } from '../api/client.js';
-import { getErrorCode } from '../api/errors.js';
 import {
   parseNotificationListResponse,
   parseSseRealtimePayload,
@@ -109,9 +108,10 @@ export const useNotificationStore = create<NotificationState & NotificationActio
         listError: '',
       });
     } catch (e) {
+      const code = (e as { code?: unknown })?.code;
       set({
         listLoading: false,
-        listError: getErrorCode(e) ?? 'FETCH_FAILED',
+        listError: code != null ? String(code) : 'FETCH_FAILED',
       });
     }
   },
