@@ -1,7 +1,13 @@
 // 단일 알림 행: 종류 라벨·시간·읽음 처리·게시글 이동.
 import { useNavigate } from 'react-router-dom';
+import type { NotificationItem as NotificationData } from '../../utils/notificationParse.js';
 
-function formatTime(iso) {
+interface NotificationItemProps {
+  item: NotificationData;
+  onMarkRead?: (ids: string[]) => void;
+}
+
+function formatTime(iso: string | null | undefined) {
   if (!iso) return '';
   try {
     const d = new Date(iso);
@@ -17,7 +23,7 @@ function formatTime(iso) {
   }
 }
 
-function kindLabel(kind) {
+function kindLabel(kind: string) {
   switch (kind) {
     case 'COMMENT_ON_POST':
       return '댓글';
@@ -30,7 +36,7 @@ function kindLabel(kind) {
   }
 }
 
-export function NotificationItem({ item, onMarkRead }) {
+export function NotificationItem({ item, onMarkRead }: NotificationItemProps) {
   const navigate = useNavigate();
   const unread = item.readAt == null;
   const label = kindLabel(item.kind);

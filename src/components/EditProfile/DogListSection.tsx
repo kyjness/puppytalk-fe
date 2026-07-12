@@ -1,5 +1,15 @@
 // 회원정보 수정 우리 강아지 목록·카드·추가 버튼.
-const GENDER_OPTIONS = [
+import type { FormDog } from '../../hooks/useDogManagement.js';
+
+interface DogListSectionProps {
+  dogs: FormDog[];
+  setDogAt: (index: number, patch: Partial<FormDog>) => void;
+  addDog: () => void;
+  removeDog: (index: number) => void;
+  setRepresentative: (index: number) => void;
+}
+
+const GENDER_OPTIONS: { value: FormDog['gender']; label: string }[] = [
   { value: 'male', label: '\u2642\uFE0F' }, /* ♂️ */
   { value: 'female', label: '\u2640\uFE0F' }, /* ♀️ */
 ];
@@ -20,7 +30,13 @@ function getTodayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function DogListSection({ dogs, setDogAt, addDog, removeDog, setRepresentative }) {
+export function DogListSection({
+  dogs,
+  setDogAt,
+  addDog,
+  removeDog,
+  setRepresentative,
+}: DogListSectionProps) {
   const maxBirthDate = getTodayISO();
   return (
     <div className="mt-6 flex flex-col">

@@ -1,4 +1,16 @@
 // 회원정보 수정 프로필 사진 섹션(아바타·변경·기본값).
+import type { ChangeEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react';
+
+interface ProfileImageSectionProps {
+  profileImageDisplay: string;
+  canClearProfileImage: boolean;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  onProfileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClearProfile: () => void;
+  onAvatarClick: () => void;
+  onAvatarChangeClick: (e?: ReactMouseEvent) => void;
+}
+
 export function ProfileImageSection({
   profileImageDisplay,
   canClearProfileImage,
@@ -7,7 +19,7 @@ export function ProfileImageSection({
   onClearProfile,
   onAvatarClick,
   onAvatarChangeClick,
-}) {
+}: ProfileImageSectionProps) {
   return (
     <div className="mb-3 flex w-full flex-col gap-1">
       <label className="mb-0 w-full text-left font-['Pretendard'] text-[12px] font-bold leading-[12px] text-black">

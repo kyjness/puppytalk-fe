@@ -1,6 +1,13 @@
 // 공통 헤더: 제목, 뒤로가기, 프로필 드롭다운(로그아웃·회원정보/비밀번호 수정).
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  type ReactNode,
+  type SyntheticEvent,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api/client.js';
@@ -25,14 +32,26 @@ const PROFILE_DROPDOWN_CLASS =
 
 const PROFILE_DROPDOWN_BTN_CLASS =
   "flex min-h-[36px] w-full cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent px-2 py-2 text-center font-['Pretendard',sans-serif] text-[12px] font-medium leading-snug text-[#111827] outline-none hover:bg-[#f8fafc] focus-visible:outline focus-visible:outline-2 focus-visible:outline-black focus-visible:outline-offset-1";
-export function Header({ children, showBackButton = false, backHref = '/posts', showProfile = true }) {
+interface HeaderProps {
+  children?: ReactNode;
+  showBackButton?: boolean;
+  backHref?: string;
+  showProfile?: boolean;
+}
+
+export function Header({
+  children,
+  showBackButton = false,
+  backHref = '/posts',
+  showProfile = true,
+}: HeaderProps) {
   const { user, isLoggedIn, clearUser } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownOpenRef = useRef(dropdownOpen);
   dropdownOpenRef.current = dropdownOpen;
-  const chatAnchorRef = useRef(null);
+  const chatAnchorRef = useRef<HTMLDivElement>(null);
 
   const toggleChatInbox = useChatUiStore((s) => s.toggleChatInbox);
   const closeChatInbox = useChatUiStore((s) => s.closeChatInbox);
@@ -48,11 +67,11 @@ export function Header({ children, showBackButton = false, backHref = '/posts', 
   }, [unreadTotal]);
 
   useEffect(() => {
-    function handleClickOutside(e) {
+    function handleClickOutside(e: MouseEvent) {
       if (
         dropdownOpenRef.current &&
         dropdownRef.current &&
-        !dropdownRef.current.contains(e.target)
+        !dropdownRef.current.contains(e.target as Node)
       ) {
         setDropdownOpen(false);
       }
@@ -63,7 +82,7 @@ export function Header({ children, showBackButton = false, backHref = '/posts', 
 
   useEffect(() => {
     if (!dropdownOpen) return;
-    function onKeyDown(e) {
+    function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setDropdownOpen(false);
     }
     document.addEventListener('keydown', onKeyDown);
@@ -81,8 +100,8 @@ export function Header({ children, showBackButton = false, backHref = '/posts', 
 
   const profileImage = safeImageUrl(user?.profileImageUrl, DEFAULT_PROFILE_IMAGE) || DEFAULT_PROFILE_IMAGE;
 
-  const handleProfileImgError = (e) => {
-    if (e?.target?.src !== DEFAULT_PROFILE_IMAGE) e.target.src = DEFAULT_PROFILE_IMAGE;
+  const handleProfileImgError = (e: SyntheticEvent<HTMLImageElement>) => {
+    if (e.currentTarget.src !== DEFAULT_PROFILE_IMAGE) e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
   };
 
   return (

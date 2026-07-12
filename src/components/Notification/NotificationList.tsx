@@ -1,6 +1,18 @@
 // 알림 드롭다운 본문: 로딩·목록·모두 읽음.
 import { useMemo } from 'react';
 import { NotificationItem } from './NotificationItem.jsx';
+import type { NotificationItem as NotificationData } from '../../utils/notificationParse.js';
+
+interface NotificationListProps {
+  items: NotificationData[];
+  loading: boolean;
+  error: boolean;
+  listTotal?: number;
+  visibleCount?: number;
+  onRequestMore?: () => void;
+  onMarkRead?: (ids: string[]) => void;
+  onMarkAllRead?: () => void;
+}
 
 export function NotificationList({
   items,
@@ -11,7 +23,7 @@ export function NotificationList({
   onRequestMore,
   onMarkRead,
   onMarkAllRead,
-}) {
+}: NotificationListProps) {
   const visibleItems = useMemo(
     () => items.slice(0, Math.min(Math.max(0, visibleCount), items.length)),
     [items, visibleCount]

@@ -1,11 +1,17 @@
 // 차단 유저 관리: GET /users/me/blocks 목록 표시, 차단 해제 시 POST /users/{id}/block 토글.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type SyntheticEvent } from 'react';
 import { api } from '../../api/client.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 import { getApiErrorMessage, getClientErrorCode } from '../../utils/index.js';
 
+interface BlockedUser {
+  id: string;
+  nickname?: string;
+  profileImageUrl?: string | null;
+}
+
 export function BlockManagement() {
-  const [list, setList] = useState([]);
+  const [list, setList] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -13,9 +19,9 @@ export function BlockManagement() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/users/me/blocks');
+      const res = await api.get<{ data?: { items?: unknown } }>('/users/me/blocks');
       const payload = res?.data ?? {};
-      const items = Array.isArray(payload.items) ? payload.items : [];
+      const items = Array.isArray(payload.items) ? (payload.items as BlockedUser[]) : [];
       setList(items);
     } catch (err) {
       setError(getApiErrorMessage(getClientErrorCode(err), '차단 목록을 불러오지 못했습니다.'));
@@ -29,7 +35,7 @@ export function BlockManagement() {
     fetchBlocks();
   }, []);
 
-  const handleUnblock = async (userId) => {
+  const handleUnblock = async (userId: string) => {
     const prevList = list;
     const nextList = prevList.filter((item) => item.id !== userId);
     setList(nextList);
@@ -43,7 +49,7 @@ export function BlockManagement() {
     }
   };
 
-  const avatarUrl = (item) => item?.profileImageUrl ?? DEFAULT_PROFILE_IMAGE;
+  const avatarUrl = (item: BlockedUser) => item?.profileImageUrl ?? DEFAULT_PROFILE_IMAGE;
 
   return (
     <div className="flex w-full max-w-[600px] flex-col items-center pb-2 text-center">
@@ -93,9 +99,9 @@ export function BlockManagement() {
                   src={avatarUrl(item)}
                   alt=""
                   className="h-10 w-10 shrink-0 rounded-full bg-gray-200 object-cover"
-                  onError={(e) => {
-                    if (e.target.src !== DEFAULT_PROFILE_IMAGE) {
-                      e.target.src = DEFAULT_PROFILE_IMAGE;
+                  onError={(e: SyntheticEvent<HTMLImageElement>) => {
+                    if (e.currentTarget.src !== DEFAULT_PROFILE_IMAGE) {
+                      e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
                     }
                   }}
                 />

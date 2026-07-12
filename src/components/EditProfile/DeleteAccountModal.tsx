@@ -1,11 +1,17 @@
 // 회원탈퇴 확인 모달.
-export function DeleteAccountModal({ open, onClose, onConfirm }) {
+interface DeleteAccountModalProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+export function DeleteAccountModal({ open, onClose, onConfirm }: DeleteAccountModalProps) {
   return (
     <div
       className={`modal-overlay ${open ? 'visible' : ''}`}
       id="delete-modal"
       onClick={(e) => {
-        if (e.target.id === 'delete-modal') onClose();
+        if ((e.target as HTMLElement).id === 'delete-modal') onClose();
       }}
     >
       <div className="modal">

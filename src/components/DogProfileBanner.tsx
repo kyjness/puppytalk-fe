@@ -1,6 +1,7 @@
 // 강아지 미등록 유저 배너: 노출 시 회원정보 수정 유도, X 클릭 시 7일간 숨김.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { AuthUser } from '../context/AuthContext.jsx';
 
 const BANNER_DISMISSED_KEY = 'dogProfileBannerDismissed';
 const DISMISS_DAYS = 7;
@@ -18,7 +19,7 @@ function isDismissedWithinPeriod() {
   }
 }
 
-export function DogProfileBanner({ user }) {
+export function DogProfileBanner({ user }: { user: AuthUser | null }) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(isDismissedWithinPeriod);
 
@@ -43,7 +44,7 @@ export function DogProfileBanner({ user }) {
     }
   }, [hasDogs]);
 
-  const handleDismiss = (e) => {
+  const handleDismiss = (e: ReactMouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {

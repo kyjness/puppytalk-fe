@@ -4,11 +4,11 @@ import { SPLASH_ITEMS } from '../config.js';
 
 const SPLASH_SHOWN_KEY = 'splashShown';
 
-export function SplashScreen({ onDone }) {
+export function SplashScreen({ onDone }: { onDone?: () => void }) {
   const [index, setIndex] = useState(0);
-  const wrapperRef = useRef(null);
-  const containerRef = useRef(null);
-  const animRef = useRef(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animRef = useRef<{ destroy(): void } | null>(null);
 
   const items = SPLASH_ITEMS ?? [];
   const isComplete = index >= items.length;

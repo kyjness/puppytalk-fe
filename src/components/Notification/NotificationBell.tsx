@@ -1,5 +1,12 @@
 // 헤더 종 아이콘·미읽음 배지·알림 팝오버(포털)·토스트 스택.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import { useNotificationStore } from '../../store/useNotificationStore.js';
@@ -8,7 +15,13 @@ import { NotificationList } from './NotificationList.jsx';
 const POPOVER_Z = 10050;
 const TOAST_Z = 10060;
 
-function ToastLine({ message, toastId, removeToast }) {
+interface ToastLineProps {
+  message: string;
+  toastId: string;
+  removeToast: (id: string) => void;
+}
+
+function ToastLine({ message, toastId, removeToast }: ToastLineProps) {
   useEffect(() => {
     const id = window.setTimeout(() => removeToast(toastId), 4200);
     return () => clearTimeout(id);
@@ -25,9 +38,9 @@ function ToastLine({ message, toastId, removeToast }) {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const popoverRef = useRef(null);
-  const [popoverStyle, setPopoverStyle] = useState({});
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
   const [pageSize, setPageSize] = useState(6);
 
   const items = useNotificationStore((s) => s.items);
@@ -85,8 +98,8 @@ export function NotificationBell() {
     if (!open) return;
     let removeListener = () => {};
     const timer = window.setTimeout(() => {
-      function handlePointerDown(e) {
-        const t = /** @type {EventTarget | null} */ (e.target);
+      function handlePointerDown(e: PointerEvent) {
+        const t = e.target;
         if (!(t instanceof Node)) return;
         if (wrapRef.current?.contains(t)) return;
         if (popoverRef.current?.contains(t)) return;
