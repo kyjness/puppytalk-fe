@@ -1,11 +1,21 @@
 // 회원가입 프로필 사진 업로드 블록.
+import type { ChangeEvent, RefObject } from 'react';
+
+interface SignupProfileSectionProps {
+  profilePreviewUrl: string | null;
+  profileError: string;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  onAvatarClick: () => void;
+  onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}
+
 export function SignupProfileSection({
   profilePreviewUrl,
   profileError,
   fileInputRef,
   onAvatarClick,
   onFileChange,
-}) {
+}: SignupProfileSectionProps) {
   return (
     <div className="flex flex-col gap-[2px]">
       <label className="mb-0 font-['Pretendard'] text-[12px] font-bold leading-[12px] text-black">

@@ -1,4 +1,19 @@
 // 로그인 폼: 이메일·비밀번호 필드, formError, 로그인/회원가입 버튼.
+import type { ChangeEvent, FormEvent } from 'react';
+
+interface LoginFormProps {
+  email: string;
+  password: string;
+  emailError: string;
+  passwordError: string;
+  formError: string;
+  submitting: boolean;
+  onSubmit: (e: FormEvent) => void;
+  onEmailChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onPasswordChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onSignupClick: () => void;
+}
+
 export function LoginForm({
   email,
   password,
@@ -10,7 +25,7 @@ export function LoginForm({
   onEmailChange,
   onPasswordChange,
   onSignupClick,
-}) {
+}: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1">

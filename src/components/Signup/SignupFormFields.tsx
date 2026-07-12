@@ -1,7 +1,16 @@
 // 회원가입 폼: 이메일·비밀번호·비밀번호 확인·닉네임 4필드.
+import type { ChangeEvent } from 'react';
 import { PASSWORD_POLICY_TEXT } from '../../utils/index.js';
 
-export function SignupFormFields({ formData, errors, onFieldChange }) {
+type SignupFieldKey = 'email' | 'password' | 'passwordConfirm' | 'nickname';
+
+interface SignupFormFieldsProps {
+  formData: Record<SignupFieldKey, string>;
+  errors: Record<SignupFieldKey, string>;
+  onFieldChange: (field: SignupFieldKey) => (e: ChangeEvent<HTMLInputElement>) => void;
+}
+
+export function SignupFormFields({ formData, errors, onFieldChange }: SignupFormFieldsProps) {
   return (
     <>
       <div className="flex flex-col gap-1">

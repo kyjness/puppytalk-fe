@@ -1,5 +1,14 @@
 // 비밀번호 변경 폼: 현재/새/새 확인 3필드.
+import type { ChangeEvent } from 'react';
 import { PASSWORD_POLICY_TEXT_CHANGE } from '../../utils/index.js';
+
+type ChangePasswordFieldKey = 'currentPassword' | 'newPassword' | 'newPasswordConfirm';
+
+interface ChangePasswordFormFieldsProps {
+  formData: Record<ChangePasswordFieldKey, string>;
+  errors: Record<ChangePasswordFieldKey, string>;
+  onFieldChange: (field: ChangePasswordFieldKey) => (e: ChangeEvent<HTMLInputElement>) => void;
+}
 
 const NEW_PW_MAX = 128;
 
@@ -8,7 +17,11 @@ const INPUT_CLASS =
 
 const LABEL_CLASS = "mb-0 font-['Pretendard'] text-[12px] font-bold leading-[12px] text-black";
 
-export function ChangePasswordFormFields({ formData, errors, onFieldChange }) {
+export function ChangePasswordFormFields({
+  formData,
+  errors,
+  onFieldChange,
+}: ChangePasswordFormFieldsProps) {
   return (
     <>
       <div className="flex flex-col gap-1">
