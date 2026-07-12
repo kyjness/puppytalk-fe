@@ -89,14 +89,14 @@
 
 ### 2. 백엔드 실행 (별도 터미널)
 
-저장소 루트에서 형제 디렉터리로 백엔드를 두는 경우:
+형제 디렉터리로 백엔드를 두고, **전체 스택을 한 번에**(권장):
 
 ```bash
 cd ../2-kyjness-community-be
-uv run poe run
+docker compose up --build -d      # DB·Redis·MinIO + API. (빠른 reload는 uv run poe run)
 ```
 
-- `http://localhost:8000` 에서 서버 확인 후 프론트 실행.
+- `http://localhost:8000/v1/health` 200 확인 후 프론트 실행. Vite 프록시가 `/api`·`/upload`를 `:8000`으로 전달.
 
 ### 3. 프론트엔드 실행
 
