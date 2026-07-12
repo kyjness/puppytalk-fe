@@ -9,6 +9,26 @@ import { formatDateTime, getApiErrorMessage } from '../utils/index.js';
 
 const PAGE_SIZE = 20;
 
+interface ReportedAuthor {
+  nickname?: string;
+  status?: string;
+}
+
+interface ReportedRow {
+  id: string;
+  postId?: string;
+  userId?: string;
+  targetType?: string;
+  title?: string;
+  contentPreview?: string;
+  author?: ReportedAuthor | null;
+  authorStatus?: string;
+  reportReasons?: string[];
+  reportCount?: number;
+  lastReportedAt?: string;
+  isBlinded?: boolean;
+}
+
 /** @see former admin.css — details/summary 드롭다운 트리거 */
 const ADMIN_ACTION_SUMMARY_CLASS =
   "list-none cursor-pointer select-none rounded-[6px] border border-[#e2e8f0] bg-[#f1f5f9] py-[6px] px-[10px] text-[13px] font-medium text-black [&::-webkit-details-marker]:hidden after:content-[''] after:ml-[6px] after:inline-block after:align-middle after:border-4 after:border-transparent after:border-t-current group-open:after:mb-[2px] group-open:after:border-t-transparent group-open:after:border-b-current";
@@ -35,22 +55,26 @@ const ADMIN_BADGE_ORANGE_CLASS = `${ADMIN_BADGE_BASE} bg-[#fff7ed] text-[#c2410c
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [list, setList] = useState([]);
+  const [list, setList] = useState<ReportedRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
 
-  const optimisticRollback = useCallback(async (mutate, request, failMessage) => {
-    const prevList = list;
-    const prevTotal = total;
-    mutate();
-    try {
-      await request();
-    } catch (err) {
-      alert(getApiErrorMessage(err?.code ?? err?.message, failMessage));
-      setList(prevList);
-      setTotal(prevTotal);
-    }
-  }, [list, total]);
+  const optimisticRollback = useCallback(
+    async (mutate: () => void, request: () => Promise<unknown>, failMessage: string) => {
+      const prevList = list;
+      const prevTotal = total;
+      mutate();
+      try {
+        await request();
+      } catch (err) {
+        const e = err as { code?: string; message?: string };
+        alert(getApiErrorMessage(e?.code ?? e?.message, failMessage));
+        setList(prevList);
+        setTotal(prevTotal);
+      }
+    },
+    [list, total]
+  );
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -63,10 +87,12 @@ export function AdminDashboard() {
   const reportedQuery = useQuery({
     queryKey: ['admin', 'reported-posts', page],
     queryFn: async () => {
-      const res = await api.get(`/admin/reported-posts?page=${page}&size=${PAGE_SIZE}`);
+      const res = await api.get<{ data?: { items?: unknown; total?: unknown } }>(
+        `/admin/reported-posts?page=${page}&size=${PAGE_SIZE}`
+      );
       const payload = res?.data ?? {};
       return {
-        items: Array.isArray(payload.items) ? payload.items : [],
+        items: Array.isArray(payload.items) ? (payload.items as ReportedRow[]) : [],
         total: Number(payload.total) || 0,
       };
     },
@@ -81,18 +107,20 @@ export function AdminDashboard() {
   }, [reportedQuery.data]);
 
   useEffect(() => {
-    if (reportedQuery.isError && reportedQuery.error?.status === 403) {
+    const status = (reportedQuery.error as { status?: number } | null)?.status;
+    if (reportedQuery.isError && status === 403) {
       navigate('/', { replace: true });
     }
   }, [reportedQuery.isError, reportedQuery.error, navigate]);
 
   const loading = reportedQuery.isPending;
+  const queryErrorStatus = (reportedQuery.error as { status?: number } | null)?.status;
   const error =
-    reportedQuery.isError && reportedQuery.error?.status !== 403
-      ? reportedQuery.error?.message ?? '목록을 불러올 수 없습니다.'
+    reportedQuery.isError && queryErrorStatus !== 403
+      ? (reportedQuery.error?.message ?? '목록을 불러올 수 없습니다.')
       : null;
 
-  const handleUnblind = async (postId) => {
+  const handleUnblind = async (postId: string) => {
     if (!window.confirm('이 글의 블라인드를 해제(복구)하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === postId ? { ...r, isBlinded: false } : r))),
@@ -101,7 +129,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleSuspendUser = async (userId) => {
+  const handleSuspendUser = async (userId?: string) => {
     if (!window.confirm('해당 유저를 정지하시겠습니까? 정지된 유저는 로그인 및 활동이 제한됩니다.')) return;
     await optimisticRollback(
       () =>
@@ -121,7 +149,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleActivateUser = async (userId) => {
+  const handleActivateUser = async (userId?: string) => {
     if (!window.confirm('해당 유저의 정지를 해제하시겠습니까?')) return;
     await optimisticRollback(
       () =>
@@ -141,7 +169,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleBlindPost = async (postId) => {
+  const handleBlindPost = async (postId: string) => {
     if (!window.confirm('이 글을 블라인드 처리하시겠습니까? 게시글이 비공개 처리됩니다.')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === postId ? { ...r, isBlinded: true } : r))),
@@ -150,7 +178,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleDeletePost = async (postId) => {
+  const handleDeletePost = async (postId: string) => {
     if (!window.confirm('이 게시글을 삭제하시겠습니까? 삭제된 글은 복구할 수 없습니다.')) return;
     await optimisticRollback(
       () => {
@@ -162,7 +190,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleResetReports = async (postId) => {
+  const handleResetReports = async (postId: string) => {
     if (!window.confirm('이 글의 신고를 초기화하시겠습니까? 해당 신고는 목록에서 사라집니다.')) return;
     await optimisticRollback(
       () => {
@@ -174,7 +202,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleUnblindComment = async (commentId) => {
+  const handleUnblindComment = async (commentId: string) => {
     if (!window.confirm('이 댓글의 블라인드를 해제하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === commentId ? { ...r, isBlinded: false } : r))),
@@ -183,7 +211,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleBlindComment = async (commentId) => {
+  const handleBlindComment = async (commentId: string) => {
     if (!window.confirm('이 댓글을 블라인드 처리하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === commentId ? { ...r, isBlinded: true } : r))),
@@ -192,7 +220,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleResetCommentReports = async (commentId) => {
+  const handleResetCommentReports = async (commentId: string) => {
     if (!window.confirm('이 댓글의 신고를 초기화하시겠습니까? 해당 신고는 목록에서 사라집니다.')) return;
     await optimisticRollback(
       () => {
@@ -204,7 +232,7 @@ export function AdminDashboard() {
     );
   };
 
-  const handleDeleteComment = async (postId, commentId) => {
+  const handleDeleteComment = async (postId: string | undefined, commentId: string) => {
     if (!window.confirm('이 댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.')) return;
     await optimisticRollback(
       () => {
@@ -286,10 +314,13 @@ export function AdminDashboard() {
                       const reasons = row.reportReasons ?? [];
                       const reasonsText = (() => {
                         if (!reasons.length) return '-';
-                        const countByReason = reasons.reduce((acc, r) => {
-                          acc[r] = (acc[r] ?? 0) + 1;
-                          return acc;
-                        }, /** @type {Record<string, number>} */ ({}));
+                        const countByReason = reasons.reduce(
+                          (acc: Record<string, number>, r: string) => {
+                            acc[r] = (acc[r] ?? 0) + 1;
+                            return acc;
+                          },
+                          {} as Record<string, number>
+                        );
                         return Object.entries(countByReason)
                           .sort(([a], [b]) => a.localeCompare(b))
                           .map(([reason, count]) => `${reason}(${count})`)

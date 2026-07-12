@@ -4,7 +4,7 @@ import { Header } from '../Header.jsx';
 interface PostDetailFallbackProps {
   variant: 'invalid' | 'loading' | 'error';
   error?: string;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function PostDetailFallback({ variant, error, onBack }: PostDetailFallbackProps) {

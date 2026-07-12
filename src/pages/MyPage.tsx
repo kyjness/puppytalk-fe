@@ -19,17 +19,17 @@ const TABS = [
 
 const VALID_KEYS = new Set(TABS.map((t) => t.key));
 
-function getValidTab(searchTab) {
+function getValidTab(searchTab: string | null): string {
   return searchTab && VALID_KEYS.has(searchTab) ? searchTab : 'profile';
 }
 
 export function MyPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = getValidTab(searchParams.get(TAB_KEY));
-  const navRef = useRef(null);
+  const navRef = useRef<HTMLElement>(null);
   const [mobileNavHeight, setMobileNavHeight] = useState(200);
 
-  const setTab = (key) => {
+  const setTab = (key: string) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set(TAB_KEY, key);

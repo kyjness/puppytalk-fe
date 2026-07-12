@@ -1,6 +1,6 @@
 // 라우터: Routes 정의 및 401 시 로그인 리다이렉트 핸들러 등록.
 
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { setUnauthorizedHandler } from './api/client.js';
 import { useAuth } from './context/AuthContext.jsx';
@@ -19,7 +19,7 @@ import { ChatRoomErrorBoundary } from './components/Chat/ChatRoomErrorBoundary';
 import { ChatRoom } from './pages/ChatRoom';
 
 /** API 401 시 로그인으로 보내는 핸들러 (라우터 하위에서 한 번만 등록) */
-function ApiUnauthorizedSetup({ children }) {
+function ApiUnauthorizedSetup({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { clearUser } = useAuth();
   useEffect(() => {

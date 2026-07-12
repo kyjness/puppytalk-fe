@@ -23,7 +23,7 @@ export function PostList() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const searchInputRef = useRef(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 300);
@@ -60,7 +60,7 @@ export function PostList() {
     }
   };
 
-  const handleCardClick = (postId) => {
+  const handleCardClick = (postId?: string) => {
     navigate(`/posts/${postId}`);
   };
 

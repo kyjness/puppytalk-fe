@@ -51,7 +51,7 @@ export function PostDetail() {
     handleBlockUser,
     toastMessage,
     setToastMessage,
-  } = usePostDetail(postId, user, navigate);
+  } = usePostDetail(postId ?? '', user, navigate);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -89,12 +89,12 @@ export function PostDetail() {
       ...prev,
       reportOpen: true,
       reportTargetType: 'POST',
-      reportTargetId: postId,
+      reportTargetId: postId ?? null,
     }));
   }, [user, postId, redirectToLoginForReport, setModalState]);
 
   const openCommentReport = useCallback(
-    (targetType, targetId) => {
+    (targetType: string, targetId: string) => {
       if (!user) {
         redirectToLoginForReport();
         return;
