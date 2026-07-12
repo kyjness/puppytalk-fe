@@ -75,7 +75,10 @@ export function ChatRoom() {
   const messagesRaw = useChatStore(
     useCallback((s) => (roomId ? (s.messagesByRoom[roomId] ?? []) : []), [roomId]),
   );
-  const messages = Array.isArray(messagesRaw) ? messagesRaw : [];
+  const messages = useMemo(
+    () => (Array.isArray(messagesRaw) ? messagesRaw : []),
+    [messagesRaw]
+  );
   const nextCursor = useChatStore(
     useCallback((s) => (roomId ? (s.nextCursorByRoom[roomId] ?? null) : null), [roomId]),
   );

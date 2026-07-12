@@ -10,7 +10,7 @@ export function SplashScreen({ onDone }: { onDone?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<{ destroy(): void } | null>(null);
 
-  const items = SPLASH_ITEMS ?? [];
+  const items = SPLASH_ITEMS;
   const isComplete = index >= items.length;
 
   useEffect(() => {

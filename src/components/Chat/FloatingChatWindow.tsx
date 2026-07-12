@@ -79,7 +79,10 @@ export function FloatingChatWindow() {
   const messagesRaw = useChatStore(
     useCallback((s) => (roomId ? (s.messagesByRoom[roomId] ?? EMPTY_MESSAGES) : EMPTY_MESSAGES), [roomId]),
   );
-  const messages = Array.isArray(messagesRaw) ? messagesRaw : [];
+  const messages = useMemo(
+    () => (Array.isArray(messagesRaw) ? messagesRaw : []),
+    [messagesRaw]
+  );
   const loadingInitial = useChatStore(
     useCallback((s) => (roomId ? Boolean(s.loadingInitialByRoom[roomId]) : false), [roomId]),
   );

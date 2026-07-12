@@ -57,7 +57,7 @@ export function PostDetail() {
     if (!toastMessage) return;
     const t = setTimeout(() => setToastMessage(null), 3000);
     return () => clearTimeout(t);
-  }, [toastMessage]);
+  }, [toastMessage, setToastMessage]);
 
   const handleReportSuccess = () => {
     setToastMessage('신고가 접수되었습니다.');
