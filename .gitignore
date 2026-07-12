@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-# legacy-vanilla-js/ 는 Git에 포함 (과거 구현체 보존용)
 /.pnp
 .pnp.js
 .yarn/install-state.gz
