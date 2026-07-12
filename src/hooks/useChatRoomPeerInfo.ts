@@ -41,7 +41,7 @@ function normalize(raw: Record<string, unknown>): ChatRoomPeerInfo | null {
 }
 
 async function fetchPeerInfo(roomId: string): Promise<ChatRoomPeerInfo | null> {
-  const body = await api.get(`/chat/rooms/${encodeURIComponent(roomId)}`);
+  const body = await api.get<{ data?: unknown }>(`/chat/rooms/${encodeURIComponent(roomId)}`);
   const data = body?.data ?? body;
   if (!data || typeof data !== 'object') return null;
   return normalize(data as Record<string, unknown>);

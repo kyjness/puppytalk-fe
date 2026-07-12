@@ -62,9 +62,16 @@ async function fetchRecentRooms(limit: number): Promise<RecentChatRoom[]> {
   // 404/스키마 불일치에도 UI가 깨지지 않도록 보수적으로 파싱합니다.
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(50, Math.floor(limit))) : 20;
   try {
-    const body = await api.get(`/chat/rooms?limit=${encodeURIComponent(String(safeLimit))}`);
-    const data = body?.data ?? body;
-    const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+    const body = await api.get<{ data?: unknown }>(
+      `/chat/rooms?limit=${encodeURIComponent(String(safeLimit))}`
+    );
+    const data: unknown = body?.data ?? body;
+    const dataObj = data && typeof data === 'object' ? (data as { items?: unknown }) : null;
+    const items = Array.isArray(dataObj?.items)
+      ? dataObj.items
+      : Array.isArray(data)
+        ? data
+        : [];
     const out: RecentChatRoom[] = [];
     for (const x of items) {
       if (!x || typeof x !== 'object') continue;
