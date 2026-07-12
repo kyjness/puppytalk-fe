@@ -1,20 +1,21 @@
 // 게시글 이미지 미리보기 1건(기존/신규), 제거 시 onRemove 호출.
-import { memo } from 'react';
+import { memo, type MouseEvent as ReactMouseEvent } from 'react';
 import { safeImageUrl } from '../utils/index.js';
 
-/**
- * @param {'existing' | 'new'} type
- * @param {{ imageId?: number, fileUrl?: string } | { objectUrl: string }} item
- * @param {number} index
- * @param {(type: 'existing' | 'new', index: number) => void} onRemove
- */
-function ImagePreviewItem({ type, item, index, onRemove }) {
-  const src = type === 'existing'
-    ? (safeImageUrl(item.fileUrl, '') || '')
-    : item.objectUrl;
+type ImagePreviewType = 'existing' | 'new';
+
+interface ImagePreviewItemProps {
+  type: ImagePreviewType;
+  item: { imageId?: string | number | null; fileUrl?: string; objectUrl?: string };
+  index: number;
+  onRemove: (type: ImagePreviewType, index: number) => void;
+}
+
+function ImagePreviewItem({ type, item, index, onRemove }: ImagePreviewItemProps) {
+  const src = type === 'existing' ? safeImageUrl(item.fileUrl, '') || '' : item.objectUrl;
   const dataImageId = type === 'existing' && item.imageId != null ? item.imageId : undefined;
 
-  const handleRemove = (e) => {
+  const handleRemove = (e: ReactMouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onRemove(type, index);

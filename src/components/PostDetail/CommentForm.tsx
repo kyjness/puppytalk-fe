@@ -1,5 +1,5 @@
 // 댓글 입력 폼. 자동 높이 조절(스크롤 없음), 구분선 겹침 방지.
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, type FormEvent } from 'react';
 import {
   COMMENT_FORM,
   COMMENT_FORM_SUBMIT,
@@ -11,8 +11,15 @@ import {
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 400;
 
-export function CommentForm({ content, submitting, onChangeContent, onSubmit }) {
-  const textareaRef = useRef(null);
+interface CommentFormProps {
+  content: string;
+  submitting: boolean;
+  onChangeContent: (value: string) => void;
+  onSubmit: (e: FormEvent) => void;
+}
+
+export function CommentForm({ content, submitting, onChangeContent, onSubmit }: CommentFormProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;

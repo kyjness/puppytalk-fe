@@ -14,7 +14,7 @@ export const COMMENT_WRITE_BOX_DIVIDER =
 export const COMMENT_FORM_SUBMIT =
   'mb-2 self-end cursor-pointer rounded-[20px] border-0 bg-[var(--primary)] px-[22px] py-[7px] text-[13px] font-bold leading-none text-white transition-all duration-200 hover:bg-[var(--primary-hover)] disabled:opacity-50';
 
-export const COMMENT_ITEM = (isTopLevel, isReply) =>
+export const COMMENT_ITEM = (isTopLevel: boolean, isReply: boolean) =>
   [
     'flex items-start gap-3 rounded-[12px] bg-transparent px-[14px]',
     isTopLevel ? 'pt-1 pb-[6px]' : 'pt-[6px] pb-2',
@@ -48,7 +48,7 @@ export const COMMENT_ITEM_CONTENT_ROW = 'relative m-0 flex items-start justify-b
 
 export const COMMENT_ITEM_TEXT_WRAP = 'min-w-0 flex-1';
 
-export const COMMENT_ITEM_CONTENT = (extra) =>
+export const COMMENT_ITEM_CONTENT = (extra?: string) =>
   ['m-0 min-w-0 whitespace-pre-line text-[14px] leading-[1.45] text-black', extra].filter(Boolean).join(' ');
 
 export const COMMENT_ITEM_CONTENT_CLAMP = 'line-clamp-3 overflow-hidden';
@@ -62,7 +62,7 @@ export const COMMENT_ITEM_LIKE_COL =
 export const COMMENT_ITEM_LIKE_ICON_WRAP =
   'flex w-7 shrink-0 items-start justify-center';
 
-export const commentItemLikeIconBtn = (isLiked) =>
+export const commentItemLikeIconBtn = (isLiked: boolean) =>
   [
     'inline-flex items-center justify-center rounded-lg border-0 bg-transparent p-[5px] transition-colors duration-150',
     isLiked
@@ -80,7 +80,7 @@ export const COMMENT_ITEM_META = 'm-0 mt-0 flex items-center gap-[14px] text-[12
 export const COMMENT_REPLY_BTN =
   'cursor-pointer border-0 bg-transparent p-0 text-[12px] text-[#64748b] hover:text-[#475569]';
 
-export const COMMENT_ITEM_ACTIONS = (isReply) =>
+export const COMMENT_ITEM_ACTIONS = (isReply: boolean) =>
   [
     'absolute -top-[3px] flex shrink-0 flex-row items-center gap-2',
     isReply ? 'right-[-20px]' : 'right-0',
@@ -122,7 +122,7 @@ export const COMMENT_EDIT_ACTIONS = 'mt-2 inline-flex items-center gap-3';
 export const COMMENT_SORT_TABS =
   'mb-1.5 mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5';
 
-export const commentSortTabBtn = (selected) =>
+export const commentSortTabBtn = (selected: boolean) =>
   [
     'cursor-pointer rounded-md border-0 bg-transparent px-2.5 py-1.5 text-[13px]',
     selected
@@ -136,7 +136,7 @@ export const COMMENT_PAGINATION = 'mt-5 flex justify-center';
 
 export const COMMENT_PAGINATION_UL = 'm-0 flex list-none flex-wrap justify-center gap-2 p-0';
 
-export const commentPaginationBtn = (active) =>
+export const commentPaginationBtn = (active: boolean) =>
   [
     'h-9 min-w-9 cursor-pointer rounded-lg px-2.5 text-[14px] font-medium transition-colors duration-200',
     active

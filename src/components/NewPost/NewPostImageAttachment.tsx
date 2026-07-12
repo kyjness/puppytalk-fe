@@ -1,10 +1,19 @@
 // 게시글 작성 이미지 첨부(파일 선택·총 N장 표시).
+import type { ChangeEvent, RefObject } from 'react';
+
+interface NewPostImageAttachmentProps {
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  totalCount: number;
+  maxImages: number;
+  onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}
+
 export function NewPostImageAttachment({
   fileInputRef,
   totalCount,
   maxImages,
   onFileChange,
-}) {
+}: NewPostImageAttachmentProps) {
   return (
     <div className="flex flex-col gap-1 mb-3 last:mb-5">
       <span className="mb-0 font-['Pretendard'] text-[12px] font-extrabold leading-[12px] text-[#111827]">

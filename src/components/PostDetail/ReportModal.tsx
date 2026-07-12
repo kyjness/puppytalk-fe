@@ -1,5 +1,5 @@
 // 신고 사유 선택 모달. 제출 시 POST /reports 호출.
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { api } from '../../api/client.js';
 import { getApiErrorMessage, getClientErrorCode } from '../../utils/index.js';
 
@@ -10,12 +10,20 @@ const REPORT_REASONS = [
   { value: '기타', label: '기타' },
 ];
 
-export function ReportModal({ open, targetType, targetId, onClose, onSuccess }) {
+interface ReportModalProps {
+  open: boolean;
+  targetType: string | null;
+  targetId: string | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: ReportModalProps) {
   const [reason, setReason] = useState(REPORT_REASONS[0].value);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!targetType || !targetId) return;
     setError(null);

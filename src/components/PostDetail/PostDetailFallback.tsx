@@ -1,7 +1,13 @@
 // 게시글 상세 초기 상태: invalid/loading/error.
 import { Header } from '../Header.jsx';
 
-export function PostDetailFallback({ variant, error, onBack }) {
+interface PostDetailFallbackProps {
+  variant: 'invalid' | 'loading' | 'error';
+  error?: string;
+  onBack: () => void;
+}
+
+export function PostDetailFallback({ variant, error, onBack }: PostDetailFallbackProps) {
   const content = {
     invalid: <p className="text-center text-[16px] text-black">유효하지 않은 게시글입니다.</p>,
     loading: (

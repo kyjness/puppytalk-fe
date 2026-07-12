@@ -1,11 +1,78 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  type Dispatch,
+  type SetStateAction,
+  type FormEvent,
+} from 'react';
 import { Heart, MoreHorizontal, UserX, AlertTriangle, MessageCircle } from 'lucide-react';
 import { escapeHtml, formatDateTime, calculateDogAge, formatDogGenderLabel } from '../../utils/index.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 import { useNavigateToDirectChat } from '../../hooks/useNavigateToDirectChat.js';
+import type { CommentNode } from '../../hooks/usePostDetail.js';
 import * as CC from './commentClasses.js';
 
-function didCommentChange(prevC, nextC) {
+interface RepresentativeDog {
+  name?: string;
+  gender?: string;
+  breed?: string;
+  birthDate?: string;
+}
+
+interface CommentEditState {
+  editingId: string | null;
+  content: string;
+}
+
+interface ReplyFormState {
+  content: string;
+  submitting: boolean;
+}
+
+interface CommentItemProps {
+  c: CommentNode;
+  currentUserId?: string | null;
+  commentEdit: CommentEditState;
+  setCommentEdit: Dispatch<SetStateAction<CommentEditState>>;
+  onEditSave: (commentId: string, content: string) => void;
+  onCommentLike: (commentId: string) => void;
+  onDeleteOpen: (commentId: string) => void;
+  onBlockUser?: (authorId: string) => void;
+  onReportOpen?: (targetType: string, targetId: string) => void;
+  replyToCommentId: string | null;
+  setReplyToCommentId: Dispatch<SetStateAction<string | null>>;
+  replyForm: ReplyFormState;
+  setReplyForm: Dispatch<SetStateAction<ReplyFormState>>;
+  onReplySubmit: (e: FormEvent, commentId: string) => void;
+  depth?: number;
+}
+
+interface CommentListProps {
+  comments: CommentNode[];
+  currentUserId?: string | null;
+  commentSort: string;
+  setCommentSort: (sort: string) => void;
+  commentEdit: CommentEditState;
+  setCommentEdit: Dispatch<SetStateAction<CommentEditState>>;
+  onEditSave?: (commentId: string, content: string) => void;
+  onCommentLike?: (commentId: string) => void;
+  onDeleteOpen?: (commentId: string) => void;
+  onBlockUser?: (authorId: string) => void;
+  onReportOpen?: (targetType: string, targetId: string) => void;
+  commentPage: number;
+  commentTotalPages: number;
+  setCommentPage: (page: number) => void;
+  replyToCommentId: string | null;
+  setReplyToCommentId: Dispatch<SetStateAction<string | null>>;
+  replyForm: ReplyFormState;
+  setReplyForm: Dispatch<SetStateAction<ReplyFormState>>;
+  onReplySubmit?: (e: FormEvent, commentId: string) => void;
+}
+
+function didCommentChange(prevC: CommentNode, nextC: CommentNode) {
   if (prevC === nextC) return false;
   if (!prevC || !nextC) return true;
   if (prevC.id !== nextC.id) return true;
@@ -24,7 +91,7 @@ function didCommentChange(prevC, nextC) {
   return false;
 }
 
-function arePropsEqual(prev, next) {
+function arePropsEqual(prev: CommentItemProps, next: CommentItemProps) {
   // 해당 CommentItem의 데이터가 바뀌면 반드시 리렌더
   if (didCommentChange(prev.c, next.c)) return false;
 
@@ -69,17 +136,19 @@ const CommentItem = React.memo(function CommentItem({
   setReplyForm,
   onReplySubmit,
   depth = 0,
-}) {
+}: CommentItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMoreBtn, setShowMoreBtn] = useState(false);
   const [showAllReplies, setShowAllReplies] = useState(false);
-  const contentRef = useRef(null);
-  const replyTextareaRef = useRef(null);
-  const editTextareaRef = useRef(null);
+  const contentRef = useRef<HTMLParagraphElement>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isReply = depth > 0;
   const isTopLevel = depth === 0;
+  const cid = c.id ?? '';
   const isMyComment = c.isMine || (currentUserId != null && c.author_id === currentUserId);
+  const repDog = c.author_representative_dog as RepresentativeDog | null;
 
   const { go: goToDirectChat, busy: dmBusy } = useNavigateToDirectChat();
   const showDmButton =
@@ -87,7 +156,7 @@ const CommentItem = React.memo(function CommentItem({
     !isMyComment &&
     c.author_id != null &&
     String(c.author_id) !== String(currentUserId);
-  const hasRepresentativeDog = Boolean(c.author_representative_dog?.name);
+  const hasRepresentativeDog = Boolean(repDog?.name);
 
   const adjustReplyHeight = useCallback(() => {
     const el = replyTextareaRef.current;
@@ -184,7 +253,7 @@ const CommentItem = React.memo(function CommentItem({
                 <span className={CC.COMMENT_ITEM_DOG}>
                   {' '}
                   {(() => {
-                    const d = c.author_representative_dog;
+                    const d = repDog as RepresentativeDog;
                     const genderLabel = d.gender ? (
                       <span className="inline bg-transparent text-[1em] text-inherit">
                         {formatDogGenderLabel(d.gender)}
@@ -228,11 +297,11 @@ const CommentItem = React.memo(function CommentItem({
             ) : (
               <>
                 <span className={CC.COMMENT_ITEM_AUTHOR}>{escapeHtml(c.author_nickname ?? '')}</span>
-                {c.author_representative_dog?.name && (
+                {repDog?.name && (
                   <span className={CC.COMMENT_ITEM_DOG}>
                     {' '}
                     {(() => {
-                      const d = c.author_representative_dog;
+                      const d = repDog as RepresentativeDog;
                       const genderLabel = d.gender ? (
                         <span className="inline bg-transparent text-[1em] text-inherit">
                           {formatDogGenderLabel(d.gender)}
@@ -262,14 +331,14 @@ const CommentItem = React.memo(function CommentItem({
                 <button
                   type="button"
                   className="h-auto min-w-0 cursor-pointer border-0 bg-transparent p-0 text-[11.5px] text-[#333] no-underline transition-colors duration-150 hover:text-[#111]"
-                  onClick={() => setCommentEdit({ editingId: c.id, content: c.content ?? '' })}
+                  onClick={() => setCommentEdit({ editingId: c.id ?? null, content: c.content ?? '' })}
                 >
                   수정
                 </button>
                 <button
                   type="button"
                   className="h-auto min-w-0 cursor-pointer border-0 bg-transparent p-0 text-[11.5px] text-[#333] no-underline transition-colors duration-150 hover:text-[#111]"
-                  onClick={() => onDeleteOpen(c.id)}
+                  onClick={() => onDeleteOpen(cid)}
                 >
                   삭제
                 </button>
@@ -300,7 +369,7 @@ const CommentItem = React.memo(function CommentItem({
                             type="button"
                             className={CC.MENU_ITEM_BTN_DANGER}
                             onClick={() => {
-                              onBlockUser?.(c.author_id);
+                              if (c.author_id != null) onBlockUser?.(String(c.author_id));
                               setMenuOpen(false);
                             }}
                           >
@@ -314,7 +383,7 @@ const CommentItem = React.memo(function CommentItem({
                           type="button"
                           className={CC.MENU_ITEM_BTN_DANGER}
                           onClick={() => {
-                            onReportOpen?.('COMMENT', c.id);
+                            onReportOpen?.('COMMENT', cid);
                             setMenuOpen(false);
                           }}
                         >
@@ -336,7 +405,7 @@ const CommentItem = React.memo(function CommentItem({
             className={CC.COMMENT_EDIT_FORM}
             onSubmit={(e) => {
               e.preventDefault();
-              onEditSave(c.id, commentEdit.content);
+              onEditSave(cid, commentEdit.content);
             }}
           >
             <textarea
@@ -392,7 +461,7 @@ const CommentItem = React.memo(function CommentItem({
                     <button
                       type="button"
                       className={CC.commentItemLikeIconBtn(c.isLiked)}
-                      onClick={() => onCommentLike(c.id)}
+                      onClick={() => onCommentLike(cid)}
                       aria-label={c.isLiked ? '좋아요 취소' : '좋아요'}
                     >
                       <Heart
@@ -419,7 +488,7 @@ const CommentItem = React.memo(function CommentItem({
                   <button
                     type="button"
                     className={CC.COMMENT_REPLY_BTN}
-                    onClick={() => setReplyToCommentId(replyToCommentId === c.id ? null : c.id)}
+                    onClick={() => setReplyToCommentId(replyToCommentId === c.id ? null : cid)}
                   >
                     답글 쓰기
                   </button>
@@ -431,7 +500,7 @@ const CommentItem = React.memo(function CommentItem({
         {currentUserId != null && replyToCommentId === c.id && (
           <form
             className={CC.COMMENT_REPLY_BOX}
-            onSubmit={(e) => onReplySubmit(e, c.id)}
+            onSubmit={(e) => onReplySubmit(e, cid)}
           >
             <textarea
               ref={replyTextareaRef}
@@ -532,14 +601,32 @@ export function CommentList({
   replyForm,
   setReplyForm,
   onReplySubmit,
-}) {
+}: CommentListProps) {
   // React.memo가 제대로 동작하도록 핸들러 레퍼런스 안정화
-  const handleEditSave = useCallback((...args) => onEditSave?.(...args), [onEditSave]);
-  const handleCommentLike = useCallback((...args) => onCommentLike?.(...args), [onCommentLike]);
-  const handleDeleteOpen = useCallback((...args) => onDeleteOpen?.(...args), [onDeleteOpen]);
-  const handleBlockUser = useCallback((...args) => onBlockUser?.(...args), [onBlockUser]);
-  const handleReportOpen = useCallback((...args) => onReportOpen?.(...args), [onReportOpen]);
-  const handleReplySubmit = useCallback((...args) => onReplySubmit?.(...args), [onReplySubmit]);
+  const handleEditSave = useCallback(
+    (commentId: string, content: string) => onEditSave?.(commentId, content),
+    [onEditSave]
+  );
+  const handleCommentLike = useCallback(
+    (commentId: string) => onCommentLike?.(commentId),
+    [onCommentLike]
+  );
+  const handleDeleteOpen = useCallback(
+    (commentId: string) => onDeleteOpen?.(commentId),
+    [onDeleteOpen]
+  );
+  const handleBlockUser = useCallback(
+    (authorId: string) => onBlockUser?.(authorId),
+    [onBlockUser]
+  );
+  const handleReportOpen = useCallback(
+    (targetType: string, targetId: string) => onReportOpen?.(targetType, targetId),
+    [onReportOpen]
+  );
+  const handleReplySubmit = useCallback(
+    (e: FormEvent, commentId: string) => onReplySubmit?.(e, commentId),
+    [onReplySubmit]
+  );
 
   const renderedComments = useMemo(
     () =>

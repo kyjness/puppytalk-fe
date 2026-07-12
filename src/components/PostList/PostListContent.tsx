@@ -1,7 +1,17 @@
 // 게시글 목록 본문: 로딩·에러·빈 목록·카드 리스트·loadingMore.
-import { PostCard } from '../PostCard.jsx';
+import type { ReactNode } from 'react';
+import { PostCard, type PostCardPost } from '../PostCard.jsx';
 
-function FeedCenterMessage({ children }) {
+interface PostListContentProps {
+  loading: boolean;
+  searchHint: string | null;
+  error: string | null;
+  posts: PostCardPost[];
+  loadingMore: boolean;
+  onCardClick: (id?: string) => void;
+}
+
+function FeedCenterMessage({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-[50vh] w-full flex-col items-center justify-center px-4">
       <p className="max-w-md text-center text-[16px] leading-relaxed text-black">{children}</p>
@@ -16,7 +26,7 @@ export function PostListContent({
   posts,
   loadingMore,
   onCardClick,
-}) {
+}: PostListContentProps) {
   const hasPosts = Array.isArray(posts) && posts.length > 0;
   const showInitialSkeleton = !hasPosts && loading;
   const blocked = Boolean(searchHint || error);

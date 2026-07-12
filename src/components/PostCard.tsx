@@ -13,7 +13,49 @@ import { getPostCategoryLabel } from '../utils/postMeta.js';
 import { DEFAULT_PROFILE_IMAGE } from '../config.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-function AuthorBadge({ author }) {
+interface RepresentativeDog {
+  name?: string;
+  gender?: string;
+  breed?: string;
+  birthDate?: string;
+}
+
+interface PostAuthor {
+  nickname?: string;
+  userId?: string;
+  id?: string;
+  profileImageUrl?: string | null;
+  representativeDog?: RepresentativeDog | null;
+  [key: string]: unknown;
+}
+
+export interface PostCardPost {
+  id?: string;
+  title?: string;
+  contentPreview?: string;
+  content?: string;
+  likeCount?: number;
+  commentCount?: number;
+  viewCount?: number;
+  author?: PostAuthor | null;
+  files?: Array<{ fileUrl?: string; file_url?: string } & Record<string, unknown>>;
+  fileCount?: number;
+  imageCount?: number;
+  categoryId?: string | number | null;
+  categoryid?: string | number | null;
+  category_id?: string | number | null;
+  hashtags?: unknown;
+  createdAt?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+interface PostCardProps {
+  post: PostCardPost;
+  onClick?: () => void;
+}
+
+function AuthorBadge({ author }: { author: PostAuthor }) {
   const dog = author?.representativeDog;
   const name = escapeHtml(author?.nickname || '알 수 없음');
   if (!dog?.name) return <>{name}</>;
@@ -45,14 +87,14 @@ function AuthorBadge({ author }) {
 }
 
 /** 목록용 본문 미리보기: 첫 줄만, 길면 말줄임 */
-function getContentExcerpt(content, maxLength = 80) {
+function getContentExcerpt(content: unknown, maxLength = 80): string {
   if (!content || typeof content !== 'string') return '';
   const firstLine = content.trim().split(/\r?\n/)[0] || '';
   if (firstLine.length <= maxLength) return firstLine;
   return firstLine.slice(0, maxLength).trim() + '...';
 }
 
-export function PostCard({ post, onClick }) {
+export function PostCard({ post, onClick }: PostCardProps) {
   const { user } = useAuth();
   const postId = post.id;
   const title = post.title || '제목 없음';
@@ -187,8 +229,8 @@ export function PostCard({ post, onClick }) {
               alt="작성자 프로필"
               className="block h-full w-full rounded-full object-cover"
               onError={(e) => {
-                if (e.target.src !== DEFAULT_PROFILE_IMAGE) {
-                  e.target.src = DEFAULT_PROFILE_IMAGE;
+                if (e.currentTarget.src !== DEFAULT_PROFILE_IMAGE) {
+                  e.currentTarget.src = DEFAULT_PROFILE_IMAGE;
                 }
               }}
             />

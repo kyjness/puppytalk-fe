@@ -1,5 +1,13 @@
 // 게시글 작성 제목 필드.
-export function NewPostTitleField({ title, titleError, onChange }) {
+import type { ChangeEvent } from 'react';
+
+interface NewPostTitleFieldProps {
+  title: string;
+  titleError: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}
+
+export function NewPostTitleField({ title, titleError, onChange }: NewPostTitleFieldProps) {
   return (
     <div className="flex flex-col gap-1 mb-3 last:mb-5">
       <label

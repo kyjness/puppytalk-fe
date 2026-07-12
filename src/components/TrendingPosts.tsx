@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Zap } from 'lucide-react';
-import { useTrendingPosts } from '../hooks/useTrendingPosts.js';
+import { useTrendingPosts, type TrendingPostRow } from '../hooks/useTrendingPosts.js';
 import { getTrendingPostCategoryLabel } from '../utils/postMeta.js';
 
 const SKELETON_COUNT = 10;
@@ -11,11 +11,11 @@ const CATEGORY_BADGE_CLASS =
 const TITLE_BUTTON_CLASS =
   "min-w-0 flex-1 cursor-pointer truncate border-0 bg-transparent p-0 text-left font-['Pretendard',sans-serif] text-[15px] font-medium leading-snug text-[#0f172a] transition-colors duration-150 hover:text-[#b91c1c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(185,28,28,0.4)]";
 
-function _rowPadClass(rank) {
+function _rowPadClass(rank: number): string {
   return rank > 5 ? 'lg:pl-0' : '';
 }
 
-function TrendingRowSkeleton({ rank }) {
+function TrendingRowSkeleton({ rank }: { rank: number }) {
   return (
     <li
       className={[
@@ -31,7 +31,15 @@ function TrendingRowSkeleton({ rank }) {
   );
 }
 
-function TrendingRow({ post, rank, onOpen }) {
+function TrendingRow({
+  post,
+  rank,
+  onOpen,
+}: {
+  post: TrendingPostRow;
+  rank: number;
+  onOpen: (id: string | number) => void;
+}) {
   const categoryLabel = getTrendingPostCategoryLabel(post.categoryId);
   const commentCount = Number.isFinite(post.commentCount) ? post.commentCount : 0;
 
@@ -67,7 +75,7 @@ export function TrendingPosts() {
   const navigate = useNavigate();
   const { data: posts = [], isPending, isError, error } = useTrendingPosts();
 
-  const handleOpen = (id) => {
+  const handleOpen = (id: string | number) => {
     if (id == null || id === '') return;
     navigate(`/posts/${id}`);
   };

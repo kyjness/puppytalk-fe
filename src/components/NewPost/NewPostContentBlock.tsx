@@ -1,6 +1,17 @@
 // 게시글 작성 내용·이미지 미리보기·contentError.
 import ImagePreviewItem from '../ImagePreviewItem.jsx';
-import { useEffect } from 'react';
+import { useEffect, type ChangeEvent, type RefObject } from 'react';
+import type { NewImageItem } from '../../api/api-types.js';
+
+interface NewPostContentBlockProps {
+  content: string;
+  contentRef: RefObject<HTMLTextAreaElement | null>;
+  contentError: string;
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
+  newImages: NewImageItem[];
+  totalCount: number;
+  onRemovePreview: (type: 'existing' | 'new', index: number) => void;
+}
 
 export function NewPostContentBlock({
   content,
@@ -10,7 +21,7 @@ export function NewPostContentBlock({
   newImages,
   totalCount,
   onRemovePreview,
-}) {
+}: NewPostContentBlockProps) {
   useEffect(() => {
     const el = contentRef?.current;
     if (!el) return;

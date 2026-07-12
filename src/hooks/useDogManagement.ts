@@ -4,7 +4,7 @@ import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage, unwrapApiData } from '../utils/index.js';
 
-interface FormDog {
+export interface FormDog {
   id: string | null;
   name: string;
   breed: string;

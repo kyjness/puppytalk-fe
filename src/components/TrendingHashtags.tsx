@@ -2,24 +2,29 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
-function unwrapApiList(res) {
+interface HashtagItem {
+  name: string;
+  count: number;
+}
+
+function unwrapApiList(res: unknown): unknown[] {
   if (!res) return [];
-  const data = res?.data ?? res;
-  const list = data?.data ?? data;
+  const data = (res as { data?: unknown })?.data ?? res;
+  const list = (data as { data?: unknown })?.data ?? data;
   return Array.isArray(list) ? list : [];
 }
 
-function rankClass(rank) {
+function rankClass(rank: number): string {
   if (rank <= 3) return 'text-purple-600 font-extrabold';
   return 'text-gray-400 font-medium';
 }
 
 export function TrendingHashtags() {
   const navigate = useNavigate();
-  const [hashtags, setHashtags] = useState([]);
+  const [hashtags, setHashtags] = useState<HashtagItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const handleTagClick = (name) => {
+  const handleTagClick = (name: string) => {
     const raw = String(name ?? '').trim();
     if (!raw) return;
     const q = `#${raw}`;
@@ -34,10 +39,13 @@ export function TrendingHashtags() {
         const res = await api.get('/posts/trending-hashtags');
         const items = unwrapApiList(res)
           .slice(0, 10)
-          .map((x) => ({
-            name: String(x?.name ?? '').trim(),
-            count: Number(x?.count ?? 0),
-          }))
+          .map((raw) => {
+            const x = (raw ?? {}) as { name?: unknown; count?: unknown };
+            return {
+              name: String(x.name ?? '').trim(),
+              count: Number(x.count ?? 0),
+            };
+          })
           .filter((x) => x.name);
         if (alive) setHashtags(items);
       } catch (_) {

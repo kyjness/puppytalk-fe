@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { MoreHorizontal, UserX, AlertTriangle, MessageCircle } from 'lucide-react';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 import {
@@ -19,6 +19,48 @@ import {
 } from './commentClasses.js';
 import { useNavigateToDirectChat } from '../../hooks/useNavigateToDirectChat.js';
 
+interface RepresentativeDog {
+  name?: string;
+  gender?: string;
+  breed?: string;
+  birthDate?: string;
+  birth_date?: string;
+}
+
+interface PostContentPost {
+  title?: string;
+  content?: string;
+  category_id?: string | number | null;
+  hashtags?: unknown;
+  isEdited?: boolean;
+  isMine?: boolean;
+  author_id?: string | null;
+  authorId?: string | null;
+  author_nickname?: string;
+  authorNickname?: string;
+  author_profile_image?: string;
+  author_representative_dog?: unknown;
+  created_at?: string;
+  likes?: number;
+  views?: number;
+  commentCount?: number;
+}
+
+interface PostContentProps {
+  post: PostContentPost | null;
+  postId: string;
+  message: string;
+  uniqueFiles: { fileUrl?: string | null }[];
+  commentTotalCount: number;
+  onLike: () => void;
+  onEdit: (path: string) => void;
+  onDeleteOpen: () => void;
+  onBlockUser?: (authorId: string) => void;
+  onReportOpen?: () => void;
+  currentUserId?: string | null;
+  children?: ReactNode;
+}
+
 export function PostContent({
   post,
   postId,
@@ -32,7 +74,7 @@ export function PostContent({
   onReportOpen,
   currentUserId,
   children,
-}) {
+}: PostContentProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { go: goToDirectChat, busy: dmBusy } = useNavigateToDirectChat();
   if (!post) return null;
@@ -56,7 +98,8 @@ export function PostContent({
 
   const categoryLabel = getPostCategoryLabel(post?.category_id);
   const tagList = Array.isArray(post?.hashtags) ? post.hashtags : [];
-  const hasRepresentativeDog = Boolean(post?.author_representative_dog?.name);
+  const representativeDog = (post?.author_representative_dog ?? null) as RepresentativeDog | null;
+  const hasRepresentativeDog = Boolean(representativeDog?.name);
 
   return (
     <section className="w-full">
@@ -109,7 +152,7 @@ export function PostContent({
                     <span className="ml-[6px] whitespace-nowrap text-[12px] font-normal text-[#4b5563]">
                       {' '}
                       {(() => {
-                        const d = post.author_representative_dog;
+                        const d = representativeDog as RepresentativeDog;
                         const genderLabel = d.gender ? (
                           <span className="inline bg-transparent text-[1em] text-inherit">
                             {formatDogGenderLabel(d.gender)}
@@ -201,7 +244,7 @@ export function PostContent({
                             type="button"
                             className={MENU_ITEM_BTN_DANGER}
                             onClick={() => {
-                              onBlockUser?.(authorId);
+                              if (authorId != null) onBlockUser?.(String(authorId));
                               setMenuOpen(false);
                             }}
                           >
