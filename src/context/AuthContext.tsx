@@ -1,18 +1,45 @@
 // 인증 Context: 로그인 유저 상태·localStorage 복원·setUser/clearUser 제공.
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from 'react';
 
 import { useChatUiStore } from '../store/useChatUiStore';
 
 const STORAGE_KEY = 'user';
 
-const AuthContext = createContext(null);
+export interface AuthUser {
+  userId?: string;
+  id?: string;
+  nickname?: string;
+  email?: string;
+  role?: string;
+  profileImageUrl?: string | null;
+  accessToken?: string;
+  dogs?: unknown[];
+  [key: string]: unknown;
+}
 
-export function AuthProvider({ children }) {
-  const [user, setUserState] = useState(null);
+export interface AuthContextValue {
+  user: AuthUser | null;
+  isLoggedIn: boolean;
+  isRestored: boolean;
+  setUser: (userData: AuthUser | null) => void;
+  clearUser: () => void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUserState] = useState<AuthUser | null>(null);
   const [isRestored, setIsRestored] = useState(false);
 
-  const setUser = useCallback((userData) => {
+  const setUser = useCallback((userData: AuthUser | null) => {
     setUserState(userData);
     if (userData) {
       try {
@@ -40,7 +67,7 @@ export function AuthProvider({ children }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const data = JSON.parse(raw);
+        const data = JSON.parse(raw) as AuthUser;
         setUserState(data);
       }
     } catch (_) {
@@ -49,7 +76,7 @@ export function AuthProvider({ children }) {
     setIsRestored(true);
   }, []);
 
-  const value = {
+  const value: AuthContextValue = {
     user,
     isLoggedIn: !!user,
     isRestored,
@@ -60,7 +87,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
