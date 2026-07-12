@@ -1,0 +1,59 @@
+// 상대 공개 ID로 1:1 방 조회·생성 후 플로팅 채팅창 오픈.
+import { useCallback, useState } from 'react';
+
+import { api } from '../api/client.js';
+import { getApiErrorMessage, getClientErrorCode } from '../utils/index.js';
+import { useChatUiStore } from '../store/useChatUiStore';
+
+export function useNavigateToDirectChat() {
+  const [busy, setBusy] = useState(false);
+  const openFloatingRoom = useChatUiStore((s) => s.openFloatingRoom);
+
+  const go = useCallback(
+    async (
+      peerUserId: string | null | undefined,
+      title?: string | null,
+      peerProfileImageUrl?: string | null
+    ): Promise<boolean> => {
+      const peer = peerUserId != null ? String(peerUserId).trim() : '';
+      if (!peer) return false;
+      setBusy(true);
+      try {
+        const body = await api.get<{
+          data?: { roomId?: string; roomid?: string; room_id?: string };
+        }>(`/chat/rooms/direct/${encodeURIComponent(peer)}`);
+        const inner = body?.data;
+        const raw = inner?.roomId ?? inner?.roomid ?? inner?.room_id;
+        const roomIdStr = raw != null && String(raw).trim() ? String(raw).trim() : '';
+        const invalid =
+          !roomIdStr ||
+          roomIdStr === 'None' ||
+          roomIdStr === 'null' ||
+          roomIdStr === 'undefined';
+        if (invalid) {
+          window.alert('채팅방 정보를 받지 못했습니다. (서버 응답 오류)');
+          return false;
+        }
+        // openFloatingRoom이 헤더 DM 목록도 함께 닫음
+        openFloatingRoom({
+          roomId: roomIdStr,
+          peerUserId: peer,
+          title: (title != null && String(title).trim()) || '채팅',
+          peerProfileImageUrl:
+            peerProfileImageUrl != null && String(peerProfileImageUrl).trim()
+              ? String(peerProfileImageUrl).trim()
+              : undefined,
+        });
+        return true;
+      } catch (err) {
+        window.alert(getApiErrorMessage(getClientErrorCode(err), '채팅방을 열 수 없습니다.'));
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [openFloatingRoom]
+  );
+
+  return { go, busy };
+}
