@@ -2,6 +2,7 @@
 import { useCallback, useState } from 'react';
 
 import { api } from '../api/client.js';
+import { ApiError } from '../api/errors.js';
 import { getApiErrorMessage, getClientErrorCode } from '../utils/index.js';
 import { useChatUiStore } from '../store/useChatUiStore';
 
@@ -46,6 +47,15 @@ export function useNavigateToDirectChat() {
         });
         return true;
       } catch (err) {
+        // 차단 관계 direct-open 403: 누가 차단했는지 노출하지 않는 중립 문구(서버 메시지 우선).
+        if (err instanceof ApiError && err.status === 403) {
+          const neutral =
+            err.message && err.message !== err.code
+              ? err.message
+              : '메시지를 보낼 수 없는 상대입니다.';
+          window.alert(neutral);
+          return false;
+        }
         window.alert(getApiErrorMessage(getClientErrorCode(err), '채팅방을 열 수 없습니다.'));
         return false;
       } finally {
