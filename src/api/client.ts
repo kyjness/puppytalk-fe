@@ -57,7 +57,7 @@ function setAccessToken(accessToken: string): void {
 /** 로그인/회원가입/비로그인 이미지 업로드 등 401 시 refresh 시도 생략 */
 function shouldSkip401Refresh(url: string | undefined): boolean {
   if (!url || typeof url !== 'string') return true;
-  return /auth\/login|auth\/signup|media\/images\/signup/.test(url);
+  return /auth\/login|auth\/signup|media\/images\/signup\/(presign|confirm)/.test(url);
 }
 
 function isRefreshRequest(url: string | undefined): boolean {
@@ -133,7 +133,7 @@ function clearUserAndRedirect(): void {
   }
 }
 
-/** 백엔드 멱등성: 게시글 생성·이미지 업로드 POST에만 사용 */
+/** 백엔드 멱등성: 게시글 생성 POST에만 사용 */
 function normalizeRequestPath(url: string | undefined): string {
   if (!url || typeof url !== 'string') return '';
   const pathOnly = url.split('?')[0];
@@ -143,7 +143,7 @@ function normalizeRequestPath(url: string | undefined): string {
 
 function postNeedsIdempotencyKey(url: string | undefined): boolean {
   const p = normalizeRequestPath(url);
-  return p === '/posts' || p === '/media/images' || p === '/media/images/signup';
+  return p === '/posts';
 }
 
 function readIdempotencyHeader(headers: InternalAxiosRequestConfig['headers']): string | undefined {

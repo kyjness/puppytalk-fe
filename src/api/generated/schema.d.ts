@@ -21,6 +21,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/livez": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Livez
+         * @description Liveness probe — 프로세스 생존만 판정(의존성 체크 없음). 실패 시 컨테이너 재시작 신호.
+         */
+        get: operations["livez_livez_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readyz
+         * @description Readiness probe — 트래픽 수용 가능 여부. DB=hard(없으면 503), Redis=soft(fail-open이라 report만).
+         *
+         *     ECS/ALB 타깃 헬스·k8s readiness가 이 경로로 라우팅 제외를 판단한다.
+         */
+        get: operations["readyz_readyz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metrics
+         * @description Prometheus 스크레이프 엔드포인트(비-prefix). 스크레이퍼가 주기적으로 pull.
+         */
+        get: operations["metrics_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/": {
         parameters: {
             query?: never;
@@ -222,7 +284,8 @@ export interface paths {
         };
         /**
          * 실시간 알림(SSE)
-         * @description Redis Pub/Sub를 구독하는 SSE. 앱에 Redis가 없으면 503(JSON).
+         * @description 로컬 팬아웃 큐 기반 SSE. Redis 장애 시에도 스트림은 유지되고 같은 인스턴스
+         *     이벤트는 계속 수신된다(fail-open) — 503으로 끊는 것보다 낫다.
          */
         get: operations["notifications_stream_v1_notifications_stream_get"];
         put?: never;
@@ -284,7 +347,7 @@ export interface paths {
         patch: operations["set_representative_dog_v1_users_me_dogs_representative_patch"];
         trace?: never;
     };
-    "/v1/media/images/signup": {
+    "/v1/media/images/presign": {
         parameters: {
             query?: never;
             header?: never;
@@ -293,15 +356,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Upload Image Signup */
-        post: operations["upload_image_signup_v1_media_images_signup_post"];
+        /** Presign Image Upload */
+        post: operations["presign_image_upload_v1_media_images_presign_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/v1/media/images": {
+    "/v1/media/images/signup/presign": {
         parameters: {
             query?: never;
             header?: never;
@@ -310,8 +373,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Upload Image */
-        post: operations["upload_image_v1_media_images_post"];
+        /** Presign Signup Image Upload */
+        post: operations["presign_signup_image_upload_v1_media_images_signup_presign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/media/images/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Image Upload */
+        post: operations["confirm_image_upload_v1_media_images_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/media/images/signup/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Signup Image Upload */
+        post: operations["confirm_signup_image_upload_v1_media_images_signup_confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -352,6 +449,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/posts/trending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Trending Posts */
+        get: operations["get_trending_posts_v1_posts_trending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/posts": {
         parameters: {
             query?: never;
@@ -364,23 +478,6 @@ export interface paths {
         put?: never;
         /** Create Post */
         post: operations["create_post_v1_posts_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/posts/{post_id}/view": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record View */
-        post: operations["record_view_v1_posts__post_id__view_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -699,6 +796,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/chat/rooms/direct/{peer_user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Or Create Direct Room */
+        get: operations["get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recent Rooms */
+        get: operations["list_recent_rooms_v1_chat_rooms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/rooms/{room_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Room Peer Info */
+        get: operations["get_room_peer_info_v1_chat_rooms__room_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/chat/rooms/{room_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Room Read */
+        post: operations["mark_room_read_v1_chat_rooms__room_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/chat/rooms/{room_id}/messages": {
         parameters: {
             query?: never;
@@ -737,7 +902,7 @@ export interface components {
          * ApiCode
          * @enum {string}
          */
-        ApiCode: "OK" | "SIGNUP_SUCCESS" | "LOGIN_SUCCESS" | "LOGOUT_SUCCESS" | "AUTH_SUCCESS" | "EMAIL_ALREADY_EXISTS" | "NICKNAME_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "UNAUTHORIZED" | "TOKEN_EXPIRED" | "USER_NOT_FOUND" | "USER_WITHDRAWN" | "DOG_UPDATED" | "INTERNAL_SERVER_ERROR" | "POST_NOT_FOUND" | "POST_FILE_LIMIT_EXCEEDED" | "POST_HASHTAG_LIMIT_EXCEEDED" | "LIKE_NOT_FOUND" | "ALREADY_LIKED" | "CONFLICT" | "FORBIDDEN" | "COMMENT_NOT_FOUND" | "INVALID_POSTID_FORMAT" | "INVALID_REQUEST" | "INVALID_REQUEST_BODY" | "INVALID_PASSWORD_FORMAT" | "MISSING_REQUIRED_FIELD" | "INVALID_FILE_FORMAT" | "INVALID_FILE_TYPE" | "IMAGE_NOT_FOUND" | "IMAGE_IN_USE" | "INVALID_IMAGE_FILE" | "FILE_SIZE_EXCEEDED" | "PAYLOAD_TOO_LARGE" | "SIGNUP_IMAGE_TOKEN_INVALID" | "SIGNUP_IMAGE_TOKEN_ALREADY_USED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "UNPROCESSABLE_ENTITY" | "RATE_LIMIT_EXCEEDED" | "LOGIN_RATE_LIMIT_EXCEEDED" | "CONSTRAINT_ERROR" | "DB_ERROR" | "HTTP_ERROR" | "ALREADY_REPORTED" | "NOTIFICATION_SSE_UNAVAILABLE";
+        ApiCode: "OK" | "SIGNUP_SUCCESS" | "LOGIN_SUCCESS" | "LOGOUT_SUCCESS" | "AUTH_SUCCESS" | "EMAIL_ALREADY_EXISTS" | "NICKNAME_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "UNAUTHORIZED" | "TOKEN_EXPIRED" | "USER_NOT_FOUND" | "USER_WITHDRAWN" | "DOG_UPDATED" | "INTERNAL_SERVER_ERROR" | "POST_NOT_FOUND" | "POST_FILE_LIMIT_EXCEEDED" | "POST_HASHTAG_LIMIT_EXCEEDED" | "LIKE_NOT_FOUND" | "ALREADY_LIKED" | "CONFLICT" | "FORBIDDEN" | "COMMENT_NOT_FOUND" | "INVALID_POSTID_FORMAT" | "INVALID_REQUEST" | "INVALID_REQUEST_BODY" | "INVALID_PASSWORD_FORMAT" | "MISSING_REQUIRED_FIELD" | "INVALID_FILE_FORMAT" | "INVALID_FILE_TYPE" | "IMAGE_NOT_FOUND" | "IMAGE_IN_USE" | "INVALID_IMAGE_FILE" | "SIGNUP_IMAGE_TOKEN_INVALID" | "SIGNUP_IMAGE_TOKEN_ALREADY_USED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "UNPROCESSABLE_ENTITY" | "RATE_LIMIT_EXCEEDED" | "LOGIN_RATE_LIMIT_EXCEEDED" | "CONSTRAINT_ERROR" | "DB_ERROR" | "HTTP_ERROR" | "ALREADY_REPORTED";
         /** ApiResponse[AccessTokenData] */
         ApiResponse_AccessTokenData_: {
             /** Code */
@@ -822,11 +987,67 @@ export interface components {
              */
             requestid: string;
         };
+        /** ApiResponse[ChatDirectRoomData] */
+        ApiResponse_ChatDirectRoomData_: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["ChatDirectRoomData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
         /** ApiResponse[ChatMessagesPageData] */
         ApiResponse_ChatMessagesPageData_: {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
             data?: components["schemas"]["ChatMessagesPageData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[ChatRoomMarkedReadData] */
+        ApiResponse_ChatRoomMarkedReadData_: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["ChatRoomMarkedReadData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[ChatRoomPeerInfoData] */
+        ApiResponse_ChatRoomPeerInfoData_: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["ChatRoomPeerInfoData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[ChatRoomsListData] */
+        ApiResponse_ChatRoomsListData_: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["ChatRoomsListData"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -850,11 +1071,39 @@ export interface components {
              */
             requestid: string;
         };
-        /** ApiResponse[CommentsPageData] */
-        ApiResponse_CommentsPageData_: {
+        /** ApiResponse[CursorPage[CommentResponse]] */
+        ApiResponse_CursorPage_CommentResponse__: {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["CommentsPageData"] | null;
+            data?: components["schemas"]["CursorPage_CommentResponse_"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[CursorPage[NotificationItem]] */
+        ApiResponse_CursorPage_NotificationItem__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["CursorPage_NotificationItem_"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[CursorPage[PostResponse]] */
+        ApiResponse_CursorPage_PostResponse__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["CursorPage_PostResponse_"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -949,34 +1198,6 @@ export interface components {
              */
             requestid: string;
         };
-        /** ApiResponse[PaginatedResponse[NotificationItem]] */
-        ApiResponse_PaginatedResponse_NotificationItem__: {
-            /** Code */
-            code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["PaginatedResponse_NotificationItem_"] | null;
-            /** Message */
-            message?: string | null;
-            /**
-             * Requestid
-             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
-             * @default
-             */
-            requestid: string;
-        };
-        /** ApiResponse[PaginatedResponse[PostResponse]] */
-        ApiResponse_PaginatedResponse_PostResponse__: {
-            /** Code */
-            code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["PaginatedResponse_PostResponse_"] | null;
-            /** Message */
-            message?: string | null;
-            /**
-             * Requestid
-             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
-             * @default
-             */
-            requestid: string;
-        };
         /** ApiResponse[PaginatedResponse[ReportedPostItem]] */
         ApiResponse_PaginatedResponse_ReportedPostItem__: {
             /** Code */
@@ -1010,6 +1231,20 @@ export interface components {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
             data?: components["schemas"]["PostResponse"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[PresignUploadResponse] */
+        ApiResponse_PresignUploadResponse_: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["PresignUploadResponse"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -1117,12 +1352,44 @@ export interface components {
              */
             requestid: string;
         };
+        /** ApiResponse[dict[str, str]] */
+        ApiResponse_dict_str__str__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            /** Data */
+            data?: {
+                [key: string]: string;
+            } | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
         /** ApiResponse[list[TrendingHashtagResponse]] */
         ApiResponse_list_TrendingHashtagResponse__: {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
             /** Data */
             data?: components["schemas"]["TrendingHashtagResponse"][] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[list[TrendingPostResponse]] */
+        ApiResponse_list_TrendingPostResponse__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            /** Data */
+            data?: components["schemas"]["TrendingPostResponse"][] | null;
             /** Message */
             message?: string | null;
             /**
@@ -1184,21 +1451,16 @@ export interface components {
             /** Items */
             items?: components["schemas"]["BlockedUserItem"][];
         };
-        /** Body_upload_image_signup_v1_media_images_signup_post */
-        Body_upload_image_signup_v1_media_images_signup_post: {
+        /**
+         * ChatDirectRoomData
+         * @description 1:1 방 조회·없으면 생성 후 공개 room id.
+         */
+        ChatDirectRoomData: {
             /**
-             * Image
-             * @description 회원가입용 프로필 이미지
+             * Roomid
+             * @description 엔티티 공개 ID (Base62)
              */
-            image: string;
-        };
-        /** Body_upload_image_v1_media_images_post */
-        Body_upload_image_v1_media_images_post: {
-            /**
-             * Image
-             * @description 이미지 파일
-             */
-            image: string;
+            roomid: string;
         };
         /** ChatMessageItem */
         ChatMessageItem: {
@@ -1236,6 +1498,134 @@ export interface components {
              * @description 다음 페이지(더 과거) 조회 시 쿼리 cursor로 전달할 메시지 공개 ID(Base62)
              */
             nextcursor?: string | null;
+        };
+        /** ChatRoomListItem */
+        ChatRoomListItem: {
+            /**
+             * Roomid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            roomid: string;
+            /**
+             * Peeruserid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            peeruserid: string;
+            /**
+             * Peernickname
+             * @description 상대방 닉네임(표시명)
+             * @default
+             */
+            peernickname: string;
+            /**
+             * Peerprofileimageurl
+             * @description 상대방 프로필 이미지 URL
+             */
+            peerprofileimageurl?: string | null;
+            /**
+             * Peerdogprofileimageurl
+             * @description 상대 대표 강아지 프로필 이미지 URL
+             */
+            peerdogprofileimageurl?: string | null;
+            /**
+             * Peerdogname
+             * @description 상대 대표견 이름
+             */
+            peerdogname?: string | null;
+            /**
+             * Peerdogbreed
+             * @description 상대 대표견 견종
+             */
+            peerdogbreed?: string | null;
+            /**
+             * Peerdoggender
+             * @description 상대 대표견 성별 코드(male/female)
+             */
+            peerdoggender?: string | null;
+            /**
+             * Peerdogbirthdate
+             * @description 상대 대표견 생년월일
+             */
+            peerdogbirthdate?: string | null;
+            /**
+             * Lastmessagepreview
+             * @description 최근 메시지 미리보기(짧게)
+             * @default
+             */
+            lastmessagepreview: string;
+            /**
+             * Unreadcount
+             * @description 내 기준 미읽음 개수(상대가 보낸 것만)
+             * @default 0
+             */
+            unreadcount: number;
+            /**
+             * Updatedat
+             * @description 최근 메시지 시각
+             */
+            updatedat?: string | null;
+        };
+        /** ChatRoomMarkedReadData */
+        ChatRoomMarkedReadData: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+        };
+        /** ChatRoomPeerInfoData */
+        ChatRoomPeerInfoData: {
+            /**
+             * Roomid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            roomid: string;
+            /**
+             * Peeruserid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            peeruserid: string;
+            /**
+             * Peernickname
+             * @description 상대방 닉네임(표시명)
+             * @default
+             */
+            peernickname: string;
+            /**
+             * Peerprofileimageurl
+             * @description 상대방 프로필 이미지 URL
+             */
+            peerprofileimageurl?: string | null;
+            /**
+             * Peerdogname
+             * @description 상대 대표 강아지 이름
+             */
+            peerdogname?: string | null;
+            /**
+             * Peerdogprofileimageurl
+             * @description 상대 대표 강아지 프로필 이미지 URL
+             */
+            peerdogprofileimageurl?: string | null;
+            /**
+             * Peerdogbreed
+             * @description 상대 대표 강아지 견종
+             */
+            peerdogbreed?: string | null;
+            /**
+             * Peerdoggender
+             * @description 상대 대표 강아지 성별 코드(male/female)
+             */
+            peerdoggender?: string | null;
+            /**
+             * Peerdogbirthdate
+             * @description 상대 대표 강아지 생년월일
+             */
+            peerdogbirthdate?: string | null;
+        };
+        /** ChatRoomsListData */
+        ChatRoomsListData: {
+            /** Items */
+            items: components["schemas"]["ChatRoomListItem"][];
         };
         /** CommentAuthorInfo */
         CommentAuthorInfo: {
@@ -1317,25 +1707,68 @@ export interface components {
             /** Parentid */
             parentid?: string | null;
         };
-        /** CommentsPageData */
-        CommentsPageData: {
+        /**
+         * ConfirmSignupUploadRequest
+         * @description 회원가입용 pending 업로드 확정.
+         */
+        ConfirmSignupUploadRequest: {
+            /** Filekey */
+            filekey: string;
+            /** Size */
+            size?: number | null;
+        };
+        /**
+         * ConfirmUploadRequest
+         * @description 클라이언트 S3 업로드 완료 후 영구 경로로 승격·DB 등록.
+         */
+        ConfirmUploadRequest: {
+            /**
+             * Filekey
+             * @description presign 응답 file_key
+             */
+            filekey: string;
+            /**
+             * Purpose
+             * @description profile | post
+             * @default post
+             * @enum {string}
+             */
+            purpose: "profile" | "post";
+            /**
+             * Size
+             * @description 클라이언트가 측정한 바이트(선택, S3 HEAD와 교차 검증)
+             */
+            size?: number | null;
+        };
+        /** CursorPage[CommentResponse] */
+        CursorPage_CommentResponse_: {
             /** Items */
             items?: components["schemas"]["CommentResponse"][];
             /**
-             * Totalcount
-             * @default 0
+             * Hasmore
+             * @default false
              */
-            totalcount: number;
+            hasmore: boolean;
+        };
+        /** CursorPage[NotificationItem] */
+        CursorPage_NotificationItem_: {
+            /** Items */
+            items?: components["schemas"]["NotificationItem"][];
             /**
-             * Totalpages
-             * @default 0
+             * Hasmore
+             * @default false
              */
-            totalpages: number;
+            hasmore: boolean;
+        };
+        /** CursorPage[PostResponse] */
+        CursorPage_PostResponse_: {
+            /** Items */
+            items?: components["schemas"]["PostResponse"][];
             /**
-             * Currentpage
-             * @default 1
+             * Hasmore
+             * @default false
              */
-            currentpage: number;
+            hasmore: boolean;
         };
         /**
          * DogGender
@@ -1516,36 +1949,6 @@ export interface components {
          * @enum {string}
          */
         NotificationKind: "COMMENT_ON_POST" | "LIKE_POST" | "LIKE_COMMENT";
-        /** PaginatedResponse[NotificationItem] */
-        PaginatedResponse_NotificationItem_: {
-            /** Items */
-            items?: components["schemas"]["NotificationItem"][];
-            /**
-             * Hasmore
-             * @default false
-             */
-            hasmore: boolean;
-            /**
-             * Total
-             * @default 0
-             */
-            total: number;
-        };
-        /** PaginatedResponse[PostResponse] */
-        PaginatedResponse_PostResponse_: {
-            /** Items */
-            items?: components["schemas"]["PostResponse"][];
-            /**
-             * Hasmore
-             * @default false
-             */
-            hasmore: boolean;
-            /**
-             * Total
-             * @default 0
-             */
-            total: number;
-        };
         /** PaginatedResponse[ReportedPostItem] */
         PaginatedResponse_ReportedPostItem_: {
             /** Items */
@@ -1650,6 +2053,45 @@ export interface components {
              * @description 낙관적 락: 직전 GET 응답의 version과 일치해야 수정 성공
              */
             version?: number | null;
+        };
+        /**
+         * PresignUploadRequest
+         * @description S3 Presigned POST 발급 요청.
+         */
+        PresignUploadRequest: {
+            /**
+             * Filename
+             * @description 원본 파일명
+             */
+            filename: string;
+            /**
+             * Contenttype
+             * @description 업로드 Content-Type (image/jpeg, image/png, image/webp)
+             */
+            contenttype: string;
+        };
+        /**
+         * PresignUploadResponse
+         * @description S3 Presigned POST 발급 응답. 프론트는 url·fields로 multipart POST 후 confirm 호출.
+         */
+        PresignUploadResponse: {
+            /**
+             * Url
+             * @description S3 POST URL
+             */
+            url: string;
+            /**
+             * Fields
+             * @description Presigned POST form fields
+             */
+            fields: {
+                [key: string]: string;
+            };
+            /**
+             * Filekey
+             * @description pending/{uuid}/파일명 — confirm 시 동일 값 전달
+             */
+            filekey: string;
         };
         /** ReportCreateRequest */
         ReportCreateRequest: {
@@ -1859,6 +2301,33 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** TrendingPostResponse */
+        TrendingPostResponse: {
+            /**
+             * Id
+             * @description 엔티티 공개 ID (Base62)
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Categoryid */
+            categoryid?: number | null;
+            /**
+             * Commentcount
+             * @default 0
+             */
+            commentcount: number;
+            /**
+             * Likecount
+             * @default 0
+             */
+            likecount: number;
+            /**
+             * Viewcount
+             * @default 0
+             */
+            viewcount: number;
+        };
         /** UnblindedResponse */
         UnblindedResponse: {
             /**
@@ -1983,6 +2452,66 @@ export interface operations {
             };
         };
     };
+    livez_livez_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    readyz_readyz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    metrics_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     root_v1__get: {
         parameters: {
             query?: never;
@@ -2018,7 +2547,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ApiResponse_dict_str__str__"];
                 };
             };
         };
@@ -2342,7 +2871,8 @@ export interface operations {
     list_notifications_v1_notifications_get: {
         parameters: {
             query?: {
-                page?: number;
+                /** @description 무한 스크롤: 직전 응답의 마지막 알림 id(공개 ID). 미지정 시 처음부터. */
+                cursor?: string | null;
                 size?: number;
             };
             header?: never;
@@ -2357,7 +2887,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_PaginatedResponse_NotificationItem__"];
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_NotificationItem__"];
                 };
             };
             /** @description Validation Error */
@@ -2437,28 +2967,26 @@ export interface operations {
             };
         };
     };
-    upload_image_signup_v1_media_images_signup_post: {
+    presign_image_upload_v1_media_images_presign_post: {
         parameters: {
             query?: never;
-            header?: {
-                "X-Idempotency-Key"?: string | null;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_image_signup_v1_media_images_signup_post"];
+                "application/json": components["schemas"]["PresignUploadRequest"];
             };
         };
         responses: {
             /** @description Successful Response */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_SignupImageUploadData_"];
+                    "application/json": components["schemas"]["ApiResponse_PresignUploadResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -2472,21 +3000,49 @@ export interface operations {
             };
         };
     };
-    upload_image_v1_media_images_post: {
+    presign_signup_image_upload_v1_media_images_signup_presign_post: {
         parameters: {
-            query?: {
-                /** @description profile | post */
-                purpose?: "profile" | "post";
-            };
-            header?: {
-                "X-Idempotency-Key"?: string | null;
-            };
+            query?: never;
+            header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_image_v1_media_images_post"];
+                "application/json": components["schemas"]["PresignUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_PresignUploadResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_image_upload_v1_media_images_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmUploadRequest"];
             };
         };
         responses: {
@@ -2497,6 +3053,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_ImageUploadResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_signup_image_upload_v1_media_images_signup_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmSignupUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_SignupImageUploadData_"];
                 };
             };
             /** @description Validation Error */
@@ -2562,14 +3151,48 @@ export interface operations {
             };
         };
     };
+    get_trending_posts_v1_posts_trending_get: {
+        parameters: {
+            query?: {
+                /** @description 인기글 최대 개수 (최대 10) */
+                limit?: number;
+                /** @description 카테고리 ID 필터 */
+                category_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_TrendingPostResponse__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_posts_v1_posts_get: {
         parameters: {
             query?: {
-                /** @description 페이지 번호 */
-                page?: number;
+                /** @description 무한 스크롤: 직전 응답의 마지막 게시글 id(공개 ID). 미지정 시 최신부터. */
+                cursor?: string | null;
                 /** @description 페이지 크기 */
                 size?: number;
-                /** @description 검색어 (title, content ILIKE) */
+                /** @description 검색어 (제목·본문·해시태그, pg_trgm GIN. 공백=AND, #태그=정확 매칭, 토큰 3자+) */
                 q?: string | null;
                 /** @description 카테고리 ID 필터 */
                 category_id?: number | null;
@@ -2586,7 +3209,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_PaginatedResponse_PostResponse__"];
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_PostResponse__"];
                 };
             };
             /** @description Validation Error */
@@ -2622,38 +3245,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_PostIdData_"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    record_view_v1_posts__post_id__view_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 게시글 공개 ID (Base62) */
-                post_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
                 };
             };
             /** @description Validation Error */
@@ -2770,11 +3361,11 @@ export interface operations {
     get_comments_v1_posts__post_id__comments_get: {
         parameters: {
             query?: {
-                /** @description 페이지 번호 */
-                page?: number;
+                /** @description 무한 스크롤: 직전 응답의 마지막 루트 댓글 id(공개 ID). 미지정 시 처음부터. */
+                cursor?: string | null;
                 /** @description 페이지 크기 */
                 size?: number;
-                /** @description 정렬: latest|oldest|popular */
+                /** @description 정렬: latest|oldest */
                 sort?: string | null;
             };
             header?: never;
@@ -2792,7 +3383,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_CommentsPageData_"];
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_CommentResponse__"];
                 };
             };
             /** @description Validation Error */
@@ -3436,6 +4027,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_NoneType_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 상대방 공개 사용자 ID (Base62) */
+                peer_user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ChatDirectRoomData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_recent_rooms_v1_chat_rooms_get: {
+        parameters: {
+            query?: {
+                /** @description 최근 대화 목록 개수 */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ChatRoomsListData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_room_peer_info_v1_chat_rooms__room_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 채팅방 공개 ID (Base62) */
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ChatRoomPeerInfoData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_room_read_v1_chat_rooms__room_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 채팅방 공개 ID (Base62) */
+                room_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ChatRoomMarkedReadData_"];
                 };
             };
             /** @description Validation Error */
