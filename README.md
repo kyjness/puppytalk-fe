@@ -4,8 +4,8 @@
 회원가입·게시글·댓글·좋아요·해시태그 트렌드·프로필/차단·**1:1 DM 채팅(WebSocket)**·
 **실시간 알림(SSE)**·관리자 기능을 제공합니다.
 
-- **백엔드**: [PuppyTalk Backend](https://github.com/kyjness/2-kyjness-community-be)
-- **인프라·배포**: [PuppyTalk Infra](https://github.com/kyjness/2-kyjness-community-infra)
+- **백엔드**: [PuppyTalk Backend](https://github.com/kyjness/puppytalk-be)
+- **인프라·배포**: [PuppyTalk Infra](https://github.com/kyjness/puppytalk-infra)
 
 > 코드베이스는 **100% TypeScript**입니다(`.tsx`/`.ts`). 서버 상태와 클라이언트 상태를
 > 역할별로 분리하고, API 타입은 백엔드 OpenAPI 스펙에서 생성해 단일 출처(SSOT)로 씁니다.
@@ -122,7 +122,7 @@ sequenceDiagram
 ## 폴더 구조
 
 ```
-2-kyjness-community-fe/
+puppytalk-fe/
 ├── index.html                 # SPA 엔트리 (Pretendard 로컬 폰트 preload, Lottie)
 ├── img/                       # 정적 파일 (Vite publicDir: 'img')
 │   ├── anim1~3.json           # 스플래시 Lottie
@@ -167,7 +167,7 @@ sequenceDiagram
 ### 1. 사전 준비
 
 - **Node.js** + **pnpm** (`corepack enable` 후 `package.json`의 `packageManager` 버전 사용)
-- **백엔드 API** 실행 필요 → [백엔드 README](https://github.com/kyjness/2-kyjness-community-be)
+- **백엔드 API** 실행 필요 → [백엔드 README](https://github.com/kyjness/puppytalk-be)
 - **정적 에셋**(Git에 없을 수 있음 — 로컬 배치):
   - `img/imt.png` — 기본 프로필 이미지·favicon (`config.ts`의 `DEFAULT_PROFILE_IMAGE`)
   - `fonts/PretendardStd-{Regular,SemiBold,Bold}.woff2` — `index.html`·`index.css`에서 `/fonts/*` 참조
@@ -178,7 +178,7 @@ sequenceDiagram
 ### 2. 백엔드 실행 (별도 터미널)
 
 ```bash
-cd ../2-kyjness-community-be
+cd ../puppytalk-be
 docker compose up --build -d    # DB·Redis·MinIO + API
 ```
 
