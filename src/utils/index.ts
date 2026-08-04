@@ -8,7 +8,7 @@ export {
   PASSWORD_POLICY_TEXT_CHANGE,
 } from './apiErrors.js';
 export { unwrapApiData } from './api.js';
-export { nextCursorFromPage } from './cursorPage.js';
+export { appendDedupedById, nextCursorFromPage } from './cursorPage.js';
 export {
   safeImageUrl,
   getProfileImageUrl,

@@ -9,17 +9,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const specPath = path.join(root, 'openapi.json');
+import { readSpecOrExit, repoRoot } from './lib/openapi.mjs';
+
+const root = repoRoot;
 const srcDir = path.join(root, 'src');
-
-if (!fs.existsSync(specPath)) {
-  console.error('openapi.json이 없습니다. 먼저: pnpm fetch-openapi (백엔드 기동 상태)');
-  process.exit(1);
-}
-const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+const spec = readSpecOrExit();
 
 /** 커서 기반 엔드포인트 = cursor 파라미터가 있거나 응답이 CursorPage인 GET. */
 function cursorEndpoints() {
@@ -67,7 +62,6 @@ const CONTEXT_LINES = 15;
 const endpoints = cursorEndpoints();
 const files = walk(srcDir);
 const errors = [];
-const warnings = [];
 
 for (const file of files) {
   const text = fs.readFileSync(file, 'utf8');
@@ -103,7 +97,6 @@ for (const file of files) {
 }
 
 const uniq = (xs) => [...new Set(xs)];
-for (const w of uniq(warnings)) console.warn(`warn  ${w}`);
 for (const e of uniq(errors)) console.error(`ERROR ${e}`);
 
 if (errors.length > 0) {

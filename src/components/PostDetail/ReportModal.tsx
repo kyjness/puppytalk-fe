@@ -8,12 +8,13 @@ type ReportTargetType = Schemas['TargetType'];
 import { getApiErrorMessage, getClientErrorCode } from '../../utils/index.js';
 
 // 서버 enum과 1:1이어야 한다 — as const로 좁혀두면 어긋나는 순간 컴파일에서 걸린다.
+// 값이 곧 화면 문구라 label을 따로 두지 않는다.
 const REPORT_REASONS = [
-  { value: '스팸', label: '스팸' },
-  { value: '욕설', label: '욕설' },
-  { value: '부적절한 콘텐츠', label: '부적절한 콘텐츠' },
-  { value: '기타', label: '기타' },
-] as const satisfies readonly { value: ReportReason; label: string }[];
+  '스팸',
+  '욕설',
+  '부적절한 콘텐츠',
+  '기타',
+] as const satisfies readonly ReportReason[];
 
 interface ReportModalProps {
   open: boolean;
@@ -24,7 +25,7 @@ interface ReportModalProps {
 }
 
 export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: ReportModalProps) {
-  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0].value);
+  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,15 +61,15 @@ export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: 
           <div className="modal-report-body">
             <div className="modal-report-options" role="group" aria-label="신고 사유">
               {REPORT_REASONS.map((r) => (
-                <label key={r.value} className="modal-report-option">
+                <label key={r} className="modal-report-option">
                   <input
                     type="radio"
                     name="report-reason"
-                    value={r.value}
-                    checked={reason === r.value}
-                    onChange={() => setReason(r.value)}
+                    value={r}
+                    checked={reason === r}
+                    onChange={() => setReason(r)}
                   />
-                  <span>{r.label}</span>
+                  <span>{r}</span>
                 </label>
               ))}
             </div>

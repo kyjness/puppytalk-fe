@@ -642,10 +642,6 @@ export function CommentList({
     (e: FormEvent, commentId: string) => onReplySubmit?.(e, commentId),
     [onReplySubmit]
   );
-  const handleLoadMoreReplies = useCallback(
-    (commentId: string) => onLoadMoreReplies(commentId),
-    [onLoadMoreReplies]
-  );
 
   const renderedComments = useMemo(
     () =>
@@ -666,7 +662,7 @@ export function CommentList({
           replyForm={replyForm}
           setReplyForm={setReplyForm}
           onReplySubmit={handleReplySubmit}
-          onLoadMoreReplies={handleLoadMoreReplies}
+          onLoadMoreReplies={onLoadMoreReplies}
           replyLoadingIds={replyLoadingIds}
         />
       )),
@@ -685,7 +681,7 @@ export function CommentList({
       replyForm,
       setReplyForm,
       handleReplySubmit,
-      handleLoadMoreReplies,
+      onLoadMoreReplies,
       replyLoadingIds,
     ]
   );

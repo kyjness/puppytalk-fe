@@ -35,5 +35,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Test
+        run: pnpm test
+
+      # check-api-drift·check-schema-fresh는 CI에 두지 않는다 — 전자는 gitignore된
+      # openapi.json이, 후자는 백엔드 가상환경이 필요하다. 둘 다 로컬 전용 도구이고,
+      # CI에서 계약을 지키는 건 커밋된 schema.d.ts 기반의 typecheck다.
       - name: Build
         run: pnpm build

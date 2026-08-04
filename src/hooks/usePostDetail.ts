@@ -1,5 +1,5 @@
 // 게시글 상세: React Query(게시글·댓글) + 모달·댓글 CRUD.
-import { useState, useCallback, useRef, useMemo, type FormEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, type FormEvent } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../api/typed.js';
@@ -9,6 +9,7 @@ import { useAuth, type AuthUser } from '../context/AuthContext.jsx';
 import {
   getApiErrorMessage,
   getClientErrorCode,
+  appendDedupedById,
   getProfileImageUrl,
   nextCursorFromPage,
   safeImageUrl,
@@ -83,9 +84,7 @@ interface RawComment {
   isDeleted?: boolean;
   is_deleted?: boolean;
   replyCount?: number;
-  reply_count?: number;
   hasMoreReplies?: boolean;
-  has_more_replies?: boolean;
 }
 
 // --- 정규화된 UI 도메인 타입 ---
@@ -231,8 +230,8 @@ function normalizeComment(c: RawComment, currentUser: AuthUser | null): CommentN
     parentId: c?.parentId ?? c?.parent_id ?? null,
     replies,
     // 서버 집계가 없으면 preview 길이로 대체 — 그 경우 "더보기"는 뜨지 않는다.
-    replyCount: c?.replyCount ?? c?.reply_count ?? replies.length,
-    hasMoreReplies: c?.hasMoreReplies ?? c?.has_more_replies ?? false,
+    replyCount: c?.replyCount ?? replies.length,
+    hasMoreReplies: c?.hasMoreReplies ?? false,
     isEdited: c?.isEdited === true || c?.is_edited === true || c?.isedited === true,
     isDeleted: c?.isDeleted ?? c?.is_deleted ?? false,
   };
@@ -244,10 +243,9 @@ function unwrapCommentsPagePayload(res: unknown): { items: RawComment[]; hasMore
   const inner = (o.data !== undefined ? o.data : res) as {
     items?: unknown;
     hasMore?: boolean;
-    has_more?: boolean;
   };
   const items = Array.isArray(inner?.items) ? (inner.items as RawComment[]) : [];
-  return { items, hasMore: Boolean(inner?.hasMore ?? inner?.has_more) };
+  return { items, hasMore: Boolean(inner?.hasMore) };
 }
 
 function flattenCommentForest(items: CommentNode[]): CommentNode[] {
@@ -369,7 +367,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
 
   // 루트별로 "더보기"로 이어 받은 대댓글. 서버 preview 뒤에 이어 붙인다.
   const [replyExtras, setReplyExtras] = useState<
-    Record<string, { items: CommentNode[]; cursor: string | null; hasMore: boolean }>
+    Record<string, { items: CommentNode[]; hasMore: boolean }>
   >({});
   const [replyLoadingIds, setReplyLoadingIds] = useState<ReadonlySet<string>>(new Set());
 
@@ -399,6 +397,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
 
   const isLikingRef = useRef(false);
   const pendingCommentLikeIdsRef = useRef<Set<string>>(new Set());
+  const inFlightRepliesRef = useRef<Set<string>>(new Set());
 
   const userKey = user?.userId ?? user?.id ?? null;
 
@@ -439,11 +438,20 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       // 빈 페이지(요청 사이에 대댓글이 삭제된 경우)여도 hasMore는 반영해야 한다 —
       // 안 그러면 서버 초기값(true)이 남아 눌러도 아무 일 없는 버튼이 계속 보인다.
       if (!extra) return c;
-      const seen = new Set(c.replies.map((r) => r.id));
-      const merged = [...c.replies, ...extra.items.filter((r) => r.id && !seen.has(r.id))];
-      return { ...c, replies: merged, hasMoreReplies: extra.hasMore };
+      return {
+        ...c,
+        replies: appendDedupedById(c.replies, extra.items),
+        hasMoreReplies: extra.hasMore,
+      };
     });
   }, [commentsOverride, fetchedComments, replyExtras]);
+
+  // loadMoreReplies가 커서를 읽을 때 쓰는 최신 스냅샷 — 의존성으로 넣으면 콜백이 매 변경마다
+  // 새로 만들어져 목록 전체가 다시 조립된다.
+  const commentsRef = useRef(comments);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
 
   const loadPost = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['post', postId] });
@@ -455,22 +463,23 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     await queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
   }, [queryClient, postId]);
 
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = commentsQuery;
   const loadMoreComments = useCallback(() => {
-    if (commentsQuery.hasNextPage && !commentsQuery.isFetchingNextPage) {
-      void commentsQuery.fetchNextPage();
-    }
-  }, [commentsQuery]);
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const loadMoreReplies = useCallback(
     async (commentId: string) => {
       if (!postId || !commentId) return;
-      if (replyLoadingIds.has(commentId)) return;
-      // 커서는 이미 받은 마지막 대댓글의 id — preview 뒤부터 이어진다.
-      const entry = replyExtras[commentId];
-      const root = comments.find((c) => c.id === commentId);
-      const loaded = entry?.items.length ? entry.items : (root?.replies ?? []);
-      const cursor = entry?.cursor ?? (loaded.length ? (loaded[loaded.length - 1].id ?? null) : null);
+      // 중복 요청 가드는 ref로 — state를 의존성에 넣으면 콜백이 매번 새로 만들어져
+      // 렌더된 댓글 목록 전체가 다시 조립된다.
+      if (inFlightRepliesRef.current.has(commentId)) return;
+      // 커서는 "이미 화면에 있는 마지막 대댓글" — preview + 이어받은 것이 병합된 결과의
+      // 끝이라 별도로 저장할 필요가 없다(저장하면 같은 값을 두 곳에서 관리하게 된다).
+      const loaded = commentsRef.current.find((c) => c.id === commentId)?.replies ?? [];
+      const cursor = loaded.length > 0 ? (loaded[loaded.length - 1].id ?? null) : null;
 
+      inFlightRepliesRef.current.add(commentId);
       setReplyLoadingIds((prev) => new Set(prev).add(commentId));
       try {
         const { replies, hasMore } = await fetchRepliesPage(
@@ -480,22 +489,17 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
           cursor,
           user
         );
-        setReplyExtras((prev) => {
-          const prevItems = prev[commentId]?.items ?? [];
-          const seen = new Set(prevItems.map((r) => r.id));
-          const appended = [...prevItems, ...replies.filter((r) => r.id && !seen.has(r.id))];
-          return {
-            ...prev,
-            [commentId]: {
-              items: appended,
-              cursor: nextCursorFromPage(replies, hasMore),
-              hasMore,
-            },
-          };
-        });
+        setReplyExtras((prev) => ({
+          ...prev,
+          [commentId]: {
+            items: appendDedupedById(prev[commentId]?.items ?? [], replies),
+            hasMore,
+          },
+        }));
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '답글을 불러오지 못했습니다.'));
       } finally {
+        inFlightRepliesRef.current.delete(commentId);
         setReplyLoadingIds((prev) => {
           const next = new Set(prev);
           next.delete(commentId);
@@ -503,7 +507,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         });
       }
     },
-    [postId, commentSort, user, comments, replyExtras, replyLoadingIds]
+    [postId, commentSort, user]
   );
 
   const handleLike = useCallback(async () => {

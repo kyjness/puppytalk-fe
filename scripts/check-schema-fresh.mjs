@@ -15,12 +15,12 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const beDir = path.resolve(root, '..', 'puppytalk-be');
+import { generateTypes, generatedTypesPath, repoRoot } from './lib/openapi.mjs';
+
+const beDir = path.resolve(repoRoot, '..', 'puppytalk-be');
 const venvPython = path.join(beDir, '.venv', 'bin', 'python');
-const committed = path.join(root, 'src', 'api', 'generated', 'schema.d.ts');
+const committed = generatedTypesPath;
 
 function skip(reason) {
   console.log(`skip — ${reason}`);
@@ -52,12 +52,7 @@ try {
   skip(`백엔드 스펙 생성 실패 (${String(e.stderr ?? e).trim().split('\n').pop()})`);
 }
 
-// 생성 옵션은 transform-and-generate.mjs와 동일해야 한다 — 다르면 항상 불일치로 뜬다.
-execFileSync(
-  'npx',
-  ['openapi-typescript', tmpSpec, '--default-non-nullable', 'false', '-o', tmpTypes],
-  { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] }
-);
+generateTypes(tmpSpec, tmpTypes, { quiet: true });
 
 const fresh = fs.readFileSync(tmpTypes, 'utf8');
 const current = fs.readFileSync(committed, 'utf8');

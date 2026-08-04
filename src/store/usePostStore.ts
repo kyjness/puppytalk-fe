@@ -1,12 +1,6 @@
 // 게시글 수정 Zustand 스토어: 이미지·폼 필드·API·Object URL 해제.
 import { create } from 'zustand';
-import type {
-  ApiResponse,
-  ExistingImageItem,
-  FileInfo,
-  NewImageItem,
-  PostResponse,
-} from '../api/api-types.js';
+import type { ExistingImageItem, FileInfo, NewImageItem } from '../api/api-types.js';
 import { apiDelete, apiGet, apiPatch } from '../api/typed.js';
 import { uploadImageFile } from '../api/media.js';
 import {
@@ -84,12 +78,10 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
   loadPost: async (postId: string) => {
     set({ loading: true, formError: '', titleError: '', contentError: '', postId });
     try {
-      const res = (await apiGet('/v1/posts/{post_id}', {
-        path: { post_id: postId },
-      })) as ApiResponse<PostResponse>;
-      const data = res.data ?? (res as unknown as PostResponse);
-      const raw = data as PostResponse & Record<string, unknown>;
-      const cidRaw = raw.categoryId ?? raw.categoryid;
+      const res = await apiGet('/v1/posts/{post_id}', { path: { post_id: postId } });
+      const raw = res.data;
+      if (!raw) throw new Error('POST_NOT_FOUND');
+      const cidRaw = raw.categoryId;
       const categoryId =
         cidRaw != null && Number.isFinite(Number(cidRaw)) ? Number(cidRaw) : 1;
       const tagList = Array.isArray(raw.hashtags)
@@ -103,7 +95,7 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
         const n = Number(ver);
         if (Number.isFinite(n)) postVersion = n;
       }
-      const files: FileInfo[] = data.files ?? [];
+      const files: FileInfo[] = raw.files ?? [];
       const fileRow = (f: FileInfo) => {
         const iid = f.imageId ?? f.id;
         const url = f.fileUrl ?? '';
@@ -121,8 +113,8 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
           fileUrl: url,
         }));
       set({
-        title: data.title ?? '',
-        content: data.content ?? '',
+        title: raw.title ?? '',
+        content: raw.content ?? '',
         categoryId,
         hashtagsInput,
         postVersion,

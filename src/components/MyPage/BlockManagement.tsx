@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, type SyntheticEvent } from 'react';
 import { apiGet, apiPost } from '../../api/typed.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 import {
+  appendDedupedById,
   getApiErrorMessage,
   getClientErrorCode,
   nextCursorFromPage,
@@ -27,8 +28,8 @@ export function BlockManagement() {
   /** cursor가 있으면 이어붙이고, 없으면 처음부터 다시 채운다. */
   const fetchBlocks = useCallback(async (after: string | null) => {
     const isAppend = after != null;
-    if (isAppend) setLoadingMore(true);
-    else setLoading(true);
+    const setBusy = isAppend ? setLoadingMore : setLoading;
+    setBusy(true);
     setError('');
     try {
       const res = await apiGet('/v1/users/me/blocks', {
@@ -37,18 +38,13 @@ export function BlockManagement() {
       const payload = res?.data;
       const items = Array.isArray(payload?.items) ? (payload.items as BlockedUser[]) : [];
       const next = nextCursorFromPage(items, Boolean(payload?.hasMore));
-      setList((prev) => {
-        if (!isAppend) return items;
-        const seen = new Set(prev.map((u) => u.id));
-        return [...prev, ...items.filter((u) => !seen.has(u.id))];
-      });
+      setList((prev) => (isAppend ? appendDedupedById(prev, items) : items));
       setCursor(next);
     } catch (err) {
       setError(getApiErrorMessage(getClientErrorCode(err), '차단 목록을 불러오지 못했습니다.'));
       if (!isAppend) setList([]);
     } finally {
-      if (isAppend) setLoadingMore(false);
-      else setLoading(false);
+      setBusy(false);
     }
   }, []);
 

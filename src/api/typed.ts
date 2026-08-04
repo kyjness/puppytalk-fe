@@ -24,9 +24,7 @@ type PathsFor<M extends Method> = {
   [P in keyof paths]: paths[P] extends { [K in M]: object } ? P : never;
 }[keyof paths];
 
-type OpOf<P extends keyof paths, M extends Method> = paths[P] extends { [K in M]: infer O }
-  ? O
-  : never;
+type OpOf<P extends keyof paths, M extends Method> = NonNullable<paths[P][M]>;
 
 type QueryOf<O> = O extends { parameters: { query?: infer Q } } ? Q : never;
 type PathParamsOf<O> = O extends { parameters: { path?: infer PP } } ? PP : never;
@@ -48,26 +46,24 @@ type OkOf<O> = O extends { responses: infer R }
   : never;
 
 /**
- * 스키마가 해당 항목을 `never`로 낸 연산(= 그 파라미터가 없는 연산)은 전달 자체를 막고,
- * 값이 있는 연산은 필수로 만든다. `{}` 대신 `never`를 쓰는 이유가 여기 있다.
+ * 해당 파라미터가 없는 연산(스키마가 `path?: never` 등으로 내는 경우)은 추론 결과가
+ * `undefined`라 선택이 되고, 값이 있는 연산은 필수가 된다. 초과 속성 검사가 남아 있어
+ * 없는 파라미터를 넘기면 그대로 에러다.
  */
-type Slot<K extends string, T> = [T] extends [never]
-  ? { [P in K]?: never }
-  : undefined extends T
-    ? { [P in K]?: T }
-    : { [P in K]: T };
+type Slot<K extends string, T> = undefined extends T
+  ? { [P in K]?: T }
+  : { [P in K]: T };
 
 /**
  * `query`는 항상 선택 — 스펙상 쿼리 파라미터는 전부 optional이라 생략이 곧 "기본값"이다.
- * 대신 `QueryOf<O>`가 `never`인 연산(쿼리가 없는 연산)에는 `query?: never`가 되어
- * 넘기는 순간 에러다. 있는 키만 통과하는 초과 속성 검사도 그대로 살아 있다.
+ * 쿼리가 없는 연산에는 `QueryOf<O>`가 `undefined`가 되어 어떤 키도 통과하지 못한다.
  */
 type RequestOptions<O> = Slot<'path', PathParamsOf<O>> &
   Slot<'body', BodyOf<O>> & { query?: QueryOf<O> };
 
 type AnyOptions = {
-  path?: Record<string, string | number> | never;
-  query?: Record<string, unknown> | never;
+  path?: Record<string, string | number>;
+  query?: Record<string, unknown>;
   body?: unknown;
 };
 
