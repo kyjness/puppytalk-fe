@@ -47,6 +47,8 @@ interface CommentItemProps {
   replyForm: ReplyFormState;
   setReplyForm: Dispatch<SetStateAction<ReplyFormState>>;
   onReplySubmit: (e: FormEvent, commentId: string) => void;
+  onLoadMoreReplies: (commentId: string) => void;
+  replyLoadingIds: ReadonlySet<string>;
   depth?: number;
 }
 
@@ -62,9 +64,11 @@ interface CommentListProps {
   onDeleteOpen?: (commentId: string) => void;
   onBlockUser?: (authorId: string) => void;
   onReportOpen?: (targetType: string, targetId: string) => void;
-  commentPage: number;
-  commentTotalPages: number;
-  setCommentPage: (page: number) => void;
+  hasMoreComments: boolean;
+  loadingMoreComments: boolean;
+  onLoadMoreComments: () => void;
+  onLoadMoreReplies: (commentId: string) => void;
+  replyLoadingIds: ReadonlySet<string>;
   replyToCommentId: string | null;
   setReplyToCommentId: Dispatch<SetStateAction<string | null>>;
   replyForm: ReplyFormState;
@@ -88,12 +92,19 @@ function didCommentChange(prevC: CommentNode, nextC: CommentNode) {
   const prevRepliesLen = Array.isArray(prevC.replies) ? prevC.replies.length : 0;
   const nextRepliesLen = Array.isArray(nextC.replies) ? nextC.replies.length : 0;
   if (prevRepliesLen !== nextRepliesLen) return true;
+  // 대댓글 "더보기"의 표시 여부·문구가 이 둘에서 나온다.
+  if ((prevC.replyCount ?? 0) !== (nextC.replyCount ?? 0)) return true;
+  if ((prevC.hasMoreReplies ?? false) !== (nextC.hasMoreReplies ?? false)) return true;
   return false;
 }
 
 function arePropsEqual(prev: CommentItemProps, next: CommentItemProps) {
   // 해당 CommentItem의 데이터가 바뀌면 반드시 리렌더
   if (didCommentChange(prev.c, next.c)) return false;
+
+  // 이 댓글의 답글 로딩 상태 변화(스피너/비활성)만 반영 — Set 레퍼런스 비교는 무의미하다.
+  const cid = next.c?.id ?? '';
+  if (prev.replyLoadingIds.has(cid) !== next.replyLoadingIds.has(cid)) return false;
 
   // 본인/타인 여부, 메뉴 노출 등에 영향
   if ((prev.currentUserId ?? null) !== (next.currentUserId ?? null)) return false;
@@ -135,12 +146,13 @@ const CommentItem = React.memo(function CommentItem({
   replyForm,
   setReplyForm,
   onReplySubmit,
+  onLoadMoreReplies,
+  replyLoadingIds,
   depth = 0,
 }: CommentItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMoreBtn, setShowMoreBtn] = useState(false);
-  const [showAllReplies, setShowAllReplies] = useState(false);
   const contentRef = useRef<HTMLParagraphElement>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -534,10 +546,7 @@ const CommentItem = React.memo(function CommentItem({
         )}
         {Array.isArray(c.replies) && c.replies.length > 0 && (
           <div className={CC.COMMENT_REPLIES}>
-            {(showAllReplies || c.replies.length <= 2
-              ? c.replies
-              : c.replies.slice(0, 2)
-            ).map((r) => (
+            {c.replies.map((r) => (
               <CommentItem
                 key={r.id}
                 c={r}
@@ -554,18 +563,22 @@ const CommentItem = React.memo(function CommentItem({
                 replyForm={replyForm}
                 setReplyForm={setReplyForm}
                 onReplySubmit={onReplySubmit}
+                onLoadMoreReplies={onLoadMoreReplies}
+                replyLoadingIds={replyLoadingIds}
                 depth={1}
               />
             ))}
-            {c.replies.length > 2 && (
+            {/* 서버가 루트당 preview만 실어 보낸다 — 나머지는 눌러서 이어 받는다. */}
+            {c.hasMoreReplies && (
               <button
                 type="button"
                 className={CC.COMMENT_REPLIES_TOGGLE}
-                onClick={() => setShowAllReplies((v) => !v)}
+                disabled={replyLoadingIds.has(cid)}
+                onClick={() => onLoadMoreReplies(cid)}
               >
-                {showAllReplies
-                  ? '―― 답글 숨기기'
-                  : `―― 답글 ${c.replies.length - 2}개 더보기`}
+                {replyLoadingIds.has(cid)
+                  ? '―― 답글 불러오는 중…'
+                  : `―― 답글 ${Math.max(0, (c.replyCount ?? 0) - c.replies.length)}개 더보기`}
               </button>
             )}
           </div>
@@ -593,9 +606,11 @@ export function CommentList({
   onDeleteOpen,
   onBlockUser,
   onReportOpen,
-  commentPage,
-  commentTotalPages,
-  setCommentPage,
+  hasMoreComments,
+  loadingMoreComments,
+  onLoadMoreComments,
+  onLoadMoreReplies,
+  replyLoadingIds,
   replyToCommentId,
   setReplyToCommentId,
   replyForm,
@@ -627,6 +642,10 @@ export function CommentList({
     (e: FormEvent, commentId: string) => onReplySubmit?.(e, commentId),
     [onReplySubmit]
   );
+  const handleLoadMoreReplies = useCallback(
+    (commentId: string) => onLoadMoreReplies(commentId),
+    [onLoadMoreReplies]
+  );
 
   const renderedComments = useMemo(
     () =>
@@ -647,6 +666,8 @@ export function CommentList({
           replyForm={replyForm}
           setReplyForm={setReplyForm}
           onReplySubmit={handleReplySubmit}
+          onLoadMoreReplies={handleLoadMoreReplies}
+          replyLoadingIds={replyLoadingIds}
         />
       )),
     [
@@ -664,6 +685,8 @@ export function CommentList({
       replyForm,
       setReplyForm,
       handleReplySubmit,
+      handleLoadMoreReplies,
+      replyLoadingIds,
     ]
   );
 
@@ -686,22 +709,17 @@ export function CommentList({
       <section id="comment-list" className={CC.COMMENT_LIST_SECTION}>
         {renderedComments}
       </section>
-      {commentTotalPages > 1 && (
-        <nav className={CC.COMMENT_PAGINATION} aria-label="댓글 페이지">
-          <ul className={CC.COMMENT_PAGINATION_UL}>
-            {Array.from({ length: commentTotalPages }, (_, i) => i + 1).map((p) => (
-              <li key={p}>
-                <button
-                  type="button"
-                  className={CC.commentPaginationBtn(p === commentPage)}
-                  data-page={p}
-                  onClick={() => setCommentPage(p)}
-                >
-                  {p}
-                </button>
-              </li>
-            ))}
-          </ul>
+      {/* 서버가 keyset(cursor) 페이지네이션이라 전체 페이지 수를 알 수 없다 — 번호 대신 이어보기. */}
+      {hasMoreComments && (
+        <nav className={CC.COMMENT_PAGINATION} aria-label="댓글 더 보기">
+          <button
+            type="button"
+            className={CC.commentPaginationBtn(false)}
+            disabled={loadingMoreComments}
+            onClick={onLoadMoreComments}
+          >
+            {loadingMoreComments ? '불러오는 중…' : '댓글 더 보기'}
+          </button>
         </nav>
       )}
     </>

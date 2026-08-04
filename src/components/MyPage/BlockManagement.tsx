@@ -1,8 +1,15 @@
-// 차단 유저 관리: GET /users/me/blocks 목록 표시, 차단 해제 시 POST /users/{id}/block 토글.
-import { useState, useEffect, type SyntheticEvent } from 'react';
+// 차단 유저 관리: GET /users/me/blocks(커서 페이지네이션) 목록 표시,
+// 차단 해제 시 POST /users/{id}/block 토글.
+import { useState, useEffect, useCallback, type SyntheticEvent } from 'react';
 import { api } from '../../api/client.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
-import { getApiErrorMessage, getClientErrorCode } from '../../utils/index.js';
+import {
+  getApiErrorMessage,
+  getClientErrorCode,
+  nextCursorFromPage,
+} from '../../utils/index.js';
+
+const PAGE_SIZE = 20;
 
 interface BlockedUser {
   id: string;
@@ -12,28 +19,44 @@ interface BlockedUser {
 
 export function BlockManagement() {
   const [list, setList] = useState<BlockedUser[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchBlocks = async () => {
-    setLoading(true);
+  /** cursor가 있으면 이어붙이고, 없으면 처음부터 다시 채운다. */
+  const fetchBlocks = useCallback(async (after: string | null) => {
+    const isAppend = after != null;
+    if (isAppend) setLoadingMore(true);
+    else setLoading(true);
     setError('');
     try {
-      const res = await api.get<{ data?: { items?: unknown } }>('/users/me/blocks');
+      const params = new URLSearchParams({ size: String(PAGE_SIZE) });
+      if (after) params.set('cursor', after);
+      const res = await api.get<{ data?: { items?: unknown; hasMore?: boolean } }>(
+        `/users/me/blocks?${params.toString()}`
+      );
       const payload = res?.data ?? {};
       const items = Array.isArray(payload.items) ? (payload.items as BlockedUser[]) : [];
-      setList(items);
+      const next = nextCursorFromPage(items, Boolean(payload.hasMore));
+      setList((prev) => {
+        if (!isAppend) return items;
+        const seen = new Set(prev.map((u) => u.id));
+        return [...prev, ...items.filter((u) => !seen.has(u.id))];
+      });
+      setCursor(next);
     } catch (err) {
       setError(getApiErrorMessage(getClientErrorCode(err), '차단 목록을 불러오지 못했습니다.'));
-      setList([]);
+      if (!isAppend) setList([]);
     } finally {
-      setLoading(false);
+      if (isAppend) setLoadingMore(false);
+      else setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchBlocks();
-  }, []);
+    void fetchBlocks(null);
+  }, [fetchBlocks]);
 
   const handleUnblock = async (userId: string) => {
     const prevList = list;
@@ -116,6 +139,19 @@ export function BlockManagement() {
               </button>
             </li>
           ))}
+          {/* 서버가 커서 페이지네이션이라 전체 개수를 모른다 — 남았으면 이어 받는다. */}
+          {cursor && (
+            <li className="flex justify-center border-b-0 pt-1 pb-2">
+              <button
+                type="button"
+                className="inline-flex h-[40px] w-fit items-center justify-center rounded-full border-0 bg-transparent px-5 text-[13px] font-normal text-gray-600 transition-colors duration-200 hover:text-black disabled:opacity-50"
+                disabled={loadingMore}
+                onClick={() => void fetchBlocks(cursor)}
+              >
+                {loadingMore ? '불러오는 중…' : '더 보기'}
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>

@@ -51,7 +51,6 @@ interface PostContentProps {
   postId: string;
   message: string;
   uniqueFiles: { fileUrl?: string | null }[];
-  commentTotalCount: number;
   onLike: () => void;
   onEdit: (path: string) => void;
   onDeleteOpen: () => void;
@@ -66,7 +65,6 @@ export function PostContent({
   postId,
   message,
   uniqueFiles,
-  commentTotalCount,
   onLike,
   onEdit,
   onDeleteOpen,
@@ -321,7 +319,7 @@ export function PostContent({
         </div>
         <div className="w-20 h-14 rounded-xl bg-gray-300 flex flex-col items-center justify-center">
           <span className="text-[15px] font-bold mb-1 text-black">
-            {post?.commentCount ?? commentTotalCount ?? 0}
+            {post?.commentCount ?? 0}
           </span>
           <span className="text-[10px] font-bold text-black">댓글</span>
         </div>

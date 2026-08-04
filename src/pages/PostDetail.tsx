@@ -23,9 +23,11 @@ export function PostDetail() {
     error,
     post,
     comments,
-    commentPage,
-    commentTotalPages,
-    commentTotalCount,
+    hasMoreComments,
+    loadingMoreComments,
+    loadMoreComments,
+    loadMoreReplies,
+    replyLoadingIds,
     commentSort,
     setCommentSort,
     message,
@@ -35,7 +37,6 @@ export function PostDetail() {
     setCommentForm,
     commentEdit,
     setCommentEdit,
-    setCommentPage,
     replyToCommentId,
     setReplyToCommentId,
     replyForm,
@@ -146,7 +147,6 @@ export function PostDetail() {
             postId={postId}
             message={message}
             uniqueFiles={uniqueFiles}
-            commentTotalCount={commentTotalCount}
             onLike={handleLike}
             onEdit={(path) => navigate(path)}
             onDeleteOpen={() => setModalState((prev) => ({ ...prev, postDeleteOpen: true }))}
@@ -172,9 +172,11 @@ export function PostDetail() {
               onDeleteOpen={(id) => setModalState((prev) => ({ ...prev, commentDeleteId: id }))}
               onBlockUser={handleBlockUser}
               onReportOpen={openCommentReport}
-              commentPage={commentPage}
-              commentTotalPages={commentTotalPages}
-              setCommentPage={setCommentPage}
+              hasMoreComments={hasMoreComments}
+              loadingMoreComments={loadingMoreComments}
+              onLoadMoreComments={loadMoreComments}
+              onLoadMoreReplies={loadMoreReplies}
+              replyLoadingIds={replyLoadingIds}
               replyToCommentId={replyToCommentId}
               setReplyToCommentId={setReplyToCommentId}
               replyForm={replyForm}

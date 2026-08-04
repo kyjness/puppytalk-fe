@@ -521,6 +521,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/posts/{post_id}/comments/{comment_id}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Replies
+         * @description 목록 응답의 대댓글 preview 뒤를 이어 받는다(has_more_replies가 true일 때).
+         */
+        get: operations["get_replies_v1_posts__post_id__comments__comment_id__replies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/posts/{post_id}/comments/{comment_id}": {
         parameters: {
             query?: never;
@@ -973,20 +993,6 @@ export interface components {
              */
             requestId: string;
         };
-        /** ApiResponse[BlocksData] */
-        ApiResponse_BlocksData_: {
-            /** Code */
-            code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["BlocksData"] | null;
-            /** Message */
-            message?: string | null;
-            /**
-             * Requestid
-             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
-             * @default
-             */
-            requestId: string;
-        };
         /** ApiResponse[ChatDirectRoomData] */
         ApiResponse_ChatDirectRoomData_: {
             /** Code */
@@ -1034,6 +1040,20 @@ export interface components {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
             data?: components["schemas"]["CommentIdData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestId: string;
+        };
+        /** ApiResponse[CursorPage[BlockedUserItem]] */
+        ApiResponse_CursorPage_BlockedUserItem__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["CursorPage_BlockedUserItem_"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -1435,11 +1455,6 @@ export interface components {
             /** Profileimageurl */
             profileImageUrl?: string | null;
         };
-        /** BlocksData */
-        BlocksData: {
-            /** Items */
-            items?: components["schemas"]["BlockedUserItem"][];
-        };
         /**
          * ChatDirectRoomData
          * @description 1:1 방 조회·없으면 생성 후 공개 room id.
@@ -1662,6 +1677,16 @@ export interface components {
             isDeleted: boolean;
             /** Replies */
             replies?: components["schemas"]["CommentResponse"][];
+            /**
+             * Replycount
+             * @default 0
+             */
+            replyCount: number;
+            /**
+             * Hasmorereplies
+             * @default false
+             */
+            hasMoreReplies: boolean;
         };
         /** CommentUpdateRequest */
         CommentUpdateRequest: {
@@ -1703,6 +1728,16 @@ export interface components {
              * @description 클라이언트가 측정한 바이트(선택, S3 HEAD와 교차 검증)
              */
             size?: number | null;
+        };
+        /** CursorPage[BlockedUserItem] */
+        CursorPage_BlockedUserItem_: {
+            /** Items */
+            items?: components["schemas"]["BlockedUserItem"][];
+            /**
+             * Hasmore
+             * @default false
+             */
+            hasMore: boolean;
         };
         /** CursorPage[ChatMessageItem] */
         CursorPage_ChatMessageItem_: {
@@ -2774,7 +2809,12 @@ export interface operations {
     };
     get_my_blocks_v1_users_me_blocks_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 무한 스크롤: 직전 응답의 마지막 차단 유저 id(공개 ID). 미지정 시 처음부터. */
+                cursor?: string | null;
+                /** @description 페이지 크기 */
+                size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2787,7 +2827,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_BlocksData_"];
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_BlockedUserItem__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3394,6 +3443,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_CommentIdData_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_replies_v1_posts__post_id__comments__comment_id__replies_get: {
+        parameters: {
+            query?: {
+                /** @description 무한 스크롤: 직전 응답의 마지막 대댓글 id(공개 ID). 미지정 시 처음부터. */
+                cursor?: string | null;
+                /** @description 페이지 크기 */
+                size?: number;
+                /** @description 정렬: latest|oldest */
+                sort?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description 게시글 공개 ID (Base62) */
+                post_id: string;
+                /** @description 루트 댓글 공개 ID (Base62) */
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_CommentResponse__"];
                 };
             };
             /** @description Validation Error */

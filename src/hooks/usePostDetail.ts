@@ -1,6 +1,6 @@
 // 게시글 상세: React Query(게시글·댓글) + 모달·댓글 CRUD.
 import { useState, useCallback, useRef, useMemo, type FormEvent } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { DEFAULT_PROFILE_IMAGE } from '../config.js';
@@ -9,10 +9,13 @@ import {
   getApiErrorMessage,
   getClientErrorCode,
   getProfileImageUrl,
+  nextCursorFromPage,
   safeImageUrl,
 } from '../utils/index.js';
 
 const COMMENT_PAGE_SIZE = 10;
+// 루트당 대댓글은 서버가 preview(상수)만 실어 보낸다 — 나머지는 이 크기로 이어 받는다.
+const REPLY_PAGE_SIZE = 10;
 const POST_EDIT_MERGE_KEY = (id: string | number) => `pt_post_edit_merge_${id}`;
 
 // --- 서버 원시 응답 shape (camel/snake 혼재 방어) ---
@@ -78,6 +81,10 @@ interface RawComment {
   isedited?: boolean;
   isDeleted?: boolean;
   is_deleted?: boolean;
+  replyCount?: number;
+  reply_count?: number;
+  hasMoreReplies?: boolean;
+  has_more_replies?: boolean;
 }
 
 // --- 정규화된 UI 도메인 타입 ---
@@ -114,7 +121,12 @@ export interface CommentNode {
   likeCount: number;
   isLiked: boolean;
   parentId: string | null;
+  /** 서버가 실어 보낸 preview + "더보기"로 이어 받은 대댓글. 전량이 아닐 수 있다. */
   replies: CommentNode[];
+  /** 표시 가능한 대댓글 총 개수(서버 집계). replies.length와 다를 수 있다. */
+  replyCount: number;
+  /** 아직 받지 않은 대댓글이 남았는지. */
+  hasMoreReplies: boolean;
   isEdited: boolean;
   isDeleted: boolean;
 }
@@ -216,22 +228,24 @@ function normalizeComment(c: RawComment, currentUser: AuthUser | null): CommentN
     isLiked: c?.isLiked ?? c?.is_liked ?? false,
     parentId: c?.parentId ?? c?.parent_id ?? null,
     replies,
+    // 서버 집계가 없으면 preview 길이로 대체 — 그 경우 "더보기"는 뜨지 않는다.
+    replyCount: c?.replyCount ?? c?.reply_count ?? replies.length,
+    hasMoreReplies: c?.hasMoreReplies ?? c?.has_more_replies ?? false,
     isEdited: c?.isEdited === true || c?.is_edited === true || c?.isedited === true,
     isDeleted: c?.isDeleted ?? c?.is_deleted ?? false,
   };
 }
 
-function unwrapCommentsPagePayload(res: unknown): { items: RawComment[]; totalCount: number } {
-  if (!res || typeof res !== 'object') return { items: [], totalCount: 0 };
+function unwrapCommentsPagePayload(res: unknown): { items: RawComment[]; hasMore: boolean } {
+  if (!res || typeof res !== 'object') return { items: [], hasMore: false };
   const o = res as { data?: unknown };
   const inner = (o.data !== undefined ? o.data : res) as {
     items?: unknown;
-    totalCount?: number;
-    total_count?: number;
+    hasMore?: boolean;
+    has_more?: boolean;
   };
   const items = Array.isArray(inner?.items) ? (inner.items as RawComment[]) : [];
-  const totalCount = inner?.totalCount ?? inner?.total_count ?? 0;
-  return { items, totalCount };
+  return { items, hasMore: Boolean(inner?.hasMore ?? inner?.has_more) };
 }
 
 function flattenCommentForest(items: CommentNode[]): CommentNode[] {
@@ -314,48 +328,56 @@ async function fetchPostNormalized(
   return normalized;
 }
 
+/** 서버는 keyset(cursor) 페이지네이션이다 — page 번호·total은 존재하지 않는다. */
 async function fetchCommentsPage(
   postId: string,
   commentSort: string,
-  page: number,
+  cursor: string | undefined,
   user: AuthUser | null
-): Promise<{ comments: CommentNode[]; totalCount: number; totalPages: number }> {
-  const sortParam =
-    commentSort && commentSort !== 'latest' ? `&sort=${encodeURIComponent(commentSort)}` : '';
-  const res = await api.get(
-    `/posts/${postId}/comments?page=${page}&size=${COMMENT_PAGE_SIZE}${sortParam}`
-  );
-  const { items: arr, totalCount } = unwrapCommentsPagePayload(res);
+): Promise<{ comments: CommentNode[]; hasMore: boolean }> {
+  const params = new URLSearchParams({ size: String(COMMENT_PAGE_SIZE) });
+  if (commentSort && commentSort !== 'latest') params.set('sort', commentSort);
+  if (cursor) params.set('cursor', cursor);
+  const res = await api.get(`/posts/${postId}/comments?${params.toString()}`);
+  const { items: arr, hasMore } = unwrapCommentsPagePayload(res);
   const mapped = arr.map((c) => normalizeComment(c, user));
-  return {
-    comments: nestFlatCommentsIfNeeded(mapped),
-    totalCount,
-    totalPages: Math.max(1, Math.ceil(totalCount / COMMENT_PAGE_SIZE)),
-  };
+  return { comments: nestFlatCommentsIfNeeded(mapped), hasMore };
+}
+
+/** 한 루트의 대댓글 다음 페이지 — 목록 응답의 preview 뒤를 이어 받는다. */
+async function fetchRepliesPage(
+  postId: string,
+  commentId: string,
+  commentSort: string,
+  cursor: string | null,
+  user: AuthUser | null
+): Promise<{ replies: CommentNode[]; hasMore: boolean }> {
+  const params = new URLSearchParams({ size: String(REPLY_PAGE_SIZE) });
+  if (commentSort && commentSort !== 'latest') params.set('sort', commentSort);
+  if (cursor) params.set('cursor', cursor);
+  const res = await api.get(
+    `/posts/${postId}/comments/${commentId}/replies?${params.toString()}`
+  );
+  const { items, hasMore } = unwrapCommentsPagePayload(res);
+  return { replies: items.map((r) => normalizeComment(r, user)), hasMore };
 }
 
 export function usePostDetail(postId: string, user: AuthUser | null, navigate: NavigateFunction) {
   const { isRestored } = useAuth();
   const queryClient = useQueryClient();
   const [commentSort, setCommentSortState] = useState('latest');
-  const listIdentity = `${postId ?? ''}\0${commentSort}`;
-  const [pagesByList, setPagesByList] = useState<Record<string, number>>({});
-  const commentPage = pagesByList[listIdentity] ?? 1;
 
-  const setCommentPage = useCallback(
-    (page: number) => {
-      setPagesByList((prev) => ({ ...prev, [listIdentity]: page }));
-    },
-    [listIdentity]
-  );
+  // 루트별로 "더보기"로 이어 받은 대댓글. 서버 preview 뒤에 이어 붙인다.
+  const [replyExtras, setReplyExtras] = useState<
+    Record<string, { items: CommentNode[]; cursor: string | null; hasMore: boolean }>
+  >({});
+  const [replyLoadingIds, setReplyLoadingIds] = useState<ReadonlySet<string>>(new Set());
 
-  const setCommentSort = useCallback(
-    (sort: string) => {
-      setCommentSortState(sort);
-      setPagesByList((prev) => ({ ...prev, [`${postId ?? ''}\0${sort}`]: 1 }));
-    },
-    [postId]
-  );
+  const setCommentSort = useCallback((sort: string) => {
+    setCommentSortState(sort);
+    // 정렬이 바뀌면 대댓글 커서 축도 뒤집힌다 — 이어받은 것들을 버리고 preview부터 다시.
+    setReplyExtras({});
+  }, []);
 
   const [message, setMessage] = useState('');
   const [modalState, setModalState] = useState<ModalState>({
@@ -386,9 +408,13 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     enabled: Boolean(postId && isRestored),
   });
 
-  const commentsQuery = useQuery({
-    queryKey: ['post', postId, 'comments', commentSort, commentPage, userKey],
-    queryFn: () => fetchCommentsPage(postId, commentSort, commentPage, user),
+  const commentsQuery = useInfiniteQuery({
+    queryKey: ['post', postId, 'comments', commentSort, userKey],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => fetchCommentsPage(postId, commentSort, pageParam, user),
+    // undefined = 다음 페이지 없음. 커서는 마지막 루트 댓글 id.
+    getNextPageParam: (page) =>
+      nextCursorFromPage(page.comments, page.hasMore) ?? undefined,
     enabled: Boolean(postId && isRestored),
   });
 
@@ -398,21 +424,84 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     ? getApiErrorMessage(getClientErrorCode(postQuery.error), '게시글을 불러오지 못했습니다.')
     : '';
 
-  const comments = commentsOverride ?? commentsQuery.data?.comments ?? [];
-  const commentTotalCount = commentsQuery.data?.totalCount ?? 0;
-  const commentTotalPages = commentsQuery.data?.totalPages ?? 1;
+  const fetchedComments = useMemo(
+    () => (commentsQuery.data?.pages ?? []).flatMap((p) => p.comments),
+    [commentsQuery.data?.pages]
+  );
+
+  // preview + 이어받은 대댓글을 합쳐 내려보낸다. id 기준 dedupe — 낙관적 갱신이나
+  // 재조회로 preview가 갱신될 때 같은 대댓글이 두 번 붙는 것을 막는다.
+  const comments = useMemo(() => {
+    const base = commentsOverride ?? fetchedComments;
+    if (Object.keys(replyExtras).length === 0) return base;
+    return base.map((c) => {
+      const extra = c.id ? replyExtras[c.id] : undefined;
+      if (!extra || extra.items.length === 0) return c;
+      const seen = new Set(c.replies.map((r) => r.id));
+      const merged = [...c.replies, ...extra.items.filter((r) => r.id && !seen.has(r.id))];
+      return { ...c, replies: merged, hasMoreReplies: extra.hasMore };
+    });
+  }, [commentsOverride, fetchedComments, replyExtras]);
 
   const loadPost = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['post', postId] });
   }, [queryClient, postId]);
 
-  const loadComments = useCallback(
-    async (page = 1) => {
-      setCommentsOverride(null);
-      setCommentPage(page);
-      await queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
+  const loadComments = useCallback(async () => {
+    setCommentsOverride(null);
+    setReplyExtras({});
+    await queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
+  }, [queryClient, postId]);
+
+  const loadMoreComments = useCallback(() => {
+    if (commentsQuery.hasNextPage && !commentsQuery.isFetchingNextPage) {
+      void commentsQuery.fetchNextPage();
+    }
+  }, [commentsQuery]);
+
+  const loadMoreReplies = useCallback(
+    async (commentId: string) => {
+      if (!postId || !commentId) return;
+      if (replyLoadingIds.has(commentId)) return;
+      // 커서는 이미 받은 마지막 대댓글의 id — preview 뒤부터 이어진다.
+      const entry = replyExtras[commentId];
+      const root = comments.find((c) => c.id === commentId);
+      const loaded = entry?.items.length ? entry.items : (root?.replies ?? []);
+      const cursor = entry?.cursor ?? (loaded.length ? (loaded[loaded.length - 1].id ?? null) : null);
+
+      setReplyLoadingIds((prev) => new Set(prev).add(commentId));
+      try {
+        const { replies, hasMore } = await fetchRepliesPage(
+          postId,
+          commentId,
+          commentSort,
+          cursor,
+          user
+        );
+        setReplyExtras((prev) => {
+          const prevItems = prev[commentId]?.items ?? [];
+          const seen = new Set(prevItems.map((r) => r.id));
+          const appended = [...prevItems, ...replies.filter((r) => r.id && !seen.has(r.id))];
+          return {
+            ...prev,
+            [commentId]: {
+              items: appended,
+              cursor: nextCursorFromPage(replies, hasMore),
+              hasMore,
+            },
+          };
+        });
+      } catch (err) {
+        setMessage(getApiErrorMessage(getClientErrorCode(err), '답글을 불러오지 못했습니다.'));
+      } finally {
+        setReplyLoadingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(commentId);
+          return next;
+        });
+      }
     },
-    [queryClient, postId, setCommentPage]
+    [postId, commentSort, user, comments, replyExtras, replyLoadingIds]
   );
 
   const handleLike = useCallback(async () => {
@@ -471,7 +560,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: (prev.commentCount ?? 0) + 1 } : prev
         );
-        await loadComments(1);
+        await loadComments();
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '댓글 등록에 실패했습니다.'));
         setCommentForm((prev) => ({ ...prev, submitting: false }));
@@ -495,7 +584,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: (prev.commentCount ?? 0) + 1 } : prev
         );
-        await loadComments(1);
+        await loadComments();
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '답글 등록에 실패했습니다.'));
         setReplyForm((prev) => ({ ...prev, submitting: false }));
@@ -514,12 +603,12 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: Math.max(0, (prev.commentCount ?? 0) - 1) } : prev
         );
-        await loadComments(commentPage);
+        await loadComments();
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '댓글 삭제에 실패했습니다.'));
       }
     },
-    [postId, commentPage, loadComments, queryClient, userKey]
+    [postId, loadComments, queryClient, userKey]
   );
 
   const handleCommentEdit = useCallback(
@@ -532,7 +621,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         });
         setCommentEdit({ editingId: null, content: '' });
         setCommentsOverride((prev) =>
-          updateCommentInTree(prev ?? commentsQuery.data?.comments ?? [], commentId, {
+          updateCommentInTree(prev ?? fetchedComments, commentId, {
             content: newContent.trim(),
             isEdited: true,
           })
@@ -541,7 +630,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         setMessage(getApiErrorMessage(getClientErrorCode(err), '댓글 수정에 실패했습니다.'));
       }
     },
-    [postId, commentsQuery.data?.comments]
+    [postId, fetchedComments]
   );
 
   const handleCommentLike = useCallback(
@@ -556,7 +645,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       }
       setMessage('');
       pendingCommentLikeIdsRef.current.add(commentId);
-      const baseComments = commentsOverride ?? commentsQuery.data?.comments ?? [];
+      const baseComments = commentsOverride ?? fetchedComments;
       const comment = baseComments.find((c) => c.id === commentId);
       const isCurrentlyLiked = comment?.isLiked ?? false;
 
@@ -620,7 +709,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         pendingCommentLikeIdsRef.current.delete(commentId);
       }
     },
-    [postId, user, navigate, commentsOverride, commentsQuery.data?.comments]
+    [postId, user, navigate, commentsOverride, fetchedComments]
   );
 
   const handlePostDelete = useCallback(async () => {
@@ -673,9 +762,11 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     error,
     post,
     comments,
-    commentPage,
-    commentTotalPages,
-    commentTotalCount,
+    hasMoreComments: Boolean(commentsQuery.hasNextPage),
+    loadingMoreComments: commentsQuery.isFetchingNextPage,
+    loadMoreComments,
+    loadMoreReplies,
+    replyLoadingIds,
     commentSort,
     setCommentSort,
     message,
@@ -685,7 +776,6 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     setCommentForm,
     commentEdit,
     setCommentEdit,
-    setCommentPage,
     replyToCommentId,
     setReplyToCommentId,
     replyForm,
