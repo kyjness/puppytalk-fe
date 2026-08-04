@@ -7,7 +7,8 @@ interface NotificationListProps {
   items: NotificationData[];
   loading: boolean;
   error: boolean;
-  listTotal?: number;
+  /** 서버에 다음 페이지가 남았는지. 서버는 총계를 주지 않으므로 이 불리언이 유일한 근거다. */
+  listHasMore?: boolean;
   visibleCount?: number;
   onRequestMore?: () => void;
   onMarkRead?: (ids: string[]) => void;
@@ -18,7 +19,7 @@ export function NotificationList({
   items,
   loading,
   error,
-  listTotal = 0,
+  listHasMore = false,
   visibleCount = 6,
   onRequestMore,
   onMarkRead,
@@ -28,7 +29,9 @@ export function NotificationList({
     () => items.slice(0, Math.min(Math.max(0, visibleCount), items.length)),
     [items, visibleCount]
   );
-  const hasMore = !loading && !error && listTotal > items.length;
+  // 서버에 남았거나(listHasMore), 실시간 수신으로 화면에 안 보이는 게 쌓였을 때(로컬 잔여) 노출.
+  const hasMore =
+    !loading && !error && (listHasMore || items.length > visibleItems.length);
   return (
     <div className="notification-list flex flex-col gap-1 min-w-[240px] max-w-[min(100vw-2rem,300px)]">
       <div className="flex items-center justify-between gap-2 px-1 pb-2 border-b border-stone-200/80">
@@ -45,12 +48,7 @@ export function NotificationList({
       {!loading && error && (
         <p className="text-xs text-red-600 py-4 text-center">알림을 불러오지 못했습니다.</p>
       )}
-      {!loading && !error && items.length === 0 && listTotal > 0 && (
-        <p className="text-xs text-amber-800 py-4 text-center px-1">
-          서버에는 알림이 {listTotal}건 있는데 화면에 표시하지 못했습니다. 새로고침 후 다시 시도해 주세요.
-        </p>
-      )}
-      {!loading && !error && items.length === 0 && listTotal === 0 && (
+      {!loading && !error && items.length === 0 && (
         <p className="text-xs text-stone-500 py-6 text-center">받은 알림이 없습니다.</p>
       )}
       {!loading &&
@@ -58,11 +56,7 @@ export function NotificationList({
         visibleItems.map((item) => (
           <NotificationItem key={item.id} item={item} onMarkRead={onMarkRead} />
         ))}
-      {!loading && !error && visibleItems.length > 0 && listTotal > visibleItems.length && (
-        <p className="px-1 pt-1 text-center text-[11px] text-stone-500">
-          {visibleItems.length}/{listTotal} 표시 중
-        </p>
-      )}
+      {/* 총계 표기는 뺀다 — 서버가 커서 페이지네이션이라 전체 건수를 알 수 없다. */}
       {hasMore && (
         <button
           type="button"

@@ -22,7 +22,7 @@ export function NotificationStreamHost() {
 
   useEffect(() => {
     if (isRestored && isLoggedIn) {
-      void fetchNotifications(1, 30);
+      void fetchNotifications(30);
     }
   }, [isRestored, isLoggedIn, fetchNotifications]);
 

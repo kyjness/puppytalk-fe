@@ -436,7 +436,9 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     if (Object.keys(replyExtras).length === 0) return base;
     return base.map((c) => {
       const extra = c.id ? replyExtras[c.id] : undefined;
-      if (!extra || extra.items.length === 0) return c;
+      // 빈 페이지(요청 사이에 대댓글이 삭제된 경우)여도 hasMore는 반영해야 한다 —
+      // 안 그러면 서버 초기값(true)이 남아 눌러도 아무 일 없는 버튼이 계속 보인다.
+      if (!extra) return c;
       const seen = new Set(c.replies.map((r) => r.id));
       const merged = [...c.replies, ...extra.items.filter((r) => r.id && !seen.has(r.id))];
       return { ...c, replies: merged, hasMoreReplies: extra.hasMore };

@@ -47,7 +47,7 @@ export function NotificationBell() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const listLoading = useNotificationStore((s) => s.listLoading);
   const listError = useNotificationStore((s) => s.listError);
-  const listTotal = useNotificationStore((s) => s.listTotal);
+  const listHasMore = useNotificationStore((s) => s.listHasMore);
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const markRead = useNotificationStore((s) => s.markRead);
   const toasts = useNotificationStore((s) => s.toasts);
@@ -90,7 +90,7 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    void fetchNotifications(1, pageSize);
+    void fetchNotifications(pageSize);
   }, [open, pageSize, fetchNotifications]);
 
   // 같은 클릭 제스처로 연 직후 리스너가 붙으면 포털/레이아웃보다 먼저 바깥 클릭으로 닫히는 경우가 있어 1틱 지연.
@@ -150,7 +150,7 @@ export function NotificationBell() {
               items={items}
               loading={listLoading}
               error={Boolean(listError)}
-              listTotal={listTotal}
+              listHasMore={listHasMore}
               visibleCount={pageSize}
               onRequestMore={() => setPageSize((v) => Math.min(60, v + 12))}
               onMarkRead={(ids) => void markRead(ids)}

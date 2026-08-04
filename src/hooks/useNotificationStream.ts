@@ -82,7 +82,8 @@ export function useNotificationStream({ enabled }: { enabled: boolean }): void {
 
       if (failCount >= 2) {
         try {
-          await api.get('/notifications?page=1&size=1');
+          // 인증 생존 확인용 probe — 본문은 쓰지 않는다. 서버가 무시하는 page는 보내지 않는다.
+          await api.get('/notifications?size=1');
         } catch (err) {
           const status = (err as { status?: number })?.status;
           if (status === 401) {

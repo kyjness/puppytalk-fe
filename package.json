@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
+    "check-api-drift": "node scripts/check-api-drift.mjs",
     "fetch-openapi": "node scripts/fetch-openapi.mjs",
     "generate-api": "node scripts/transform-and-generate.mjs"
   },

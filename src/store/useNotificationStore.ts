@@ -20,8 +20,8 @@ interface NotificationState {
   unreadCount: number;
   listLoading: boolean;
   listError: string;
-  /** GET /notifications 응답 total */
-  listTotal: number;
+  /** 다음 페이지가 남았는지(서버는 total을 주지 않는다 — CursorPage). */
+  listHasMore: boolean;
   streamConnected: boolean;
   /** 최근 처리한 알림 id (탭 간·SSE 중복 억제) */
   seenNotificationIds: string[];
@@ -34,7 +34,7 @@ interface NotificationActions {
   removeToast: (id: string) => void;
   rememberSeen: (id: string) => void;
   hasSeen: (id: string) => boolean;
-  fetchNotifications: (page?: number, size?: number) => Promise<void>;
+  fetchNotifications: (size?: number) => Promise<void>;
   ingestFromStream: (payload: unknown) => void;
   markRead: (ids: string[]) => Promise<void>;
   reset: () => void;
@@ -62,7 +62,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
   unreadCount: 0,
   listLoading: false,
   listError: '',
-  listTotal: 0,
+  listHasMore: false,
   streamConnected: false,
   seenNotificationIds: [],
   toasts: [],
@@ -94,15 +94,16 @@ export const useNotificationStore = create<NotificationState & NotificationActio
 
   hasSeen: (id) => get().seenNotificationIds.includes(id),
 
-  /** GET /notifications?page=1 */
-  fetchNotifications: async (page = 1, size = 30) => {
+  /** GET /notifications — 서버는 keyset(cursor)이라 page 번호·total이 없다.
+   *  벨 UI는 상한(60)이 명확해 커서 누적 대신 size를 키워 다시 받는다. */
+  fetchNotifications: async (size = 30) => {
     set({ listLoading: true, listError: '' });
     try {
-      const res = await api.get(`/notifications?page=${page}&size=${size}`);
-      const { items, total } = parseNotificationListResponse(res);
+      const res = await api.get(`/notifications?size=${size}`);
+      const { items, hasMore } = parseNotificationListResponse(res);
       set({
         items,
-        listTotal: total,
+        listHasMore: hasMore,
         unreadCount: countUnread(items),
         listLoading: false,
         listError: '',
@@ -176,7 +177,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
       unreadCount: 0,
       listLoading: false,
       listError: '',
-      listTotal: 0,
+      listHasMore: false,
       streamConnected: false,
       seenNotificationIds: [],
       toasts: [],
