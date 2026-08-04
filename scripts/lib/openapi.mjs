@@ -5,7 +5,6 @@
  * 불일치로 뜬다 — 정의 지점을 여기 하나로 둔다.
  */
 import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,10 +27,3 @@ export function generateTypes(fromSpec, toFile, { quiet = false } = {}) {
   });
 }
 
-export function readSpecOrExit() {
-  if (!fs.existsSync(specPath)) {
-    console.error('openapi.json이 없습니다. 먼저: pnpm fetch-openapi (백엔드 기동 상태)');
-    process.exit(1);
-  }
-  return JSON.parse(fs.readFileSync(specPath, 'utf8'));
-}

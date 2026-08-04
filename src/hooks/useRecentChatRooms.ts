@@ -19,27 +19,27 @@ export interface RecentChatRoom {
 }
 
 function normalizeRoom(raw: Record<string, unknown>): RecentChatRoom | null {
-  const roomId = String(raw.roomId ?? raw.roomid ?? raw.room_id ?? '').trim();
-  const peerUserId = String(raw.peerUserId ?? raw.peer_user_id ?? raw.peer ?? '').trim();
+  const roomId = String(raw.roomId ?? '').trim();
+  const peerUserId = String(raw.peerUserId ?? '').trim();
   if (!roomId || !peerUserId) return null;
 
-  const peerProfileImageUrl = String(raw.peerProfileImageUrl ?? raw.peer_profile_image_url ?? '').trim();
+  const peerProfileImageUrl = String(raw.peerProfileImageUrl ?? '').trim();
   const peerDogProfileImageUrl = String(
-    raw.peerDogProfileImageUrl ?? raw.peer_dog_profile_image_url ?? '',
+    raw.peerDogProfileImageUrl ?? '',
   ).trim();
-  const peerDogName = String(raw.peerDogName ?? raw.peer_dog_name ?? '').trim();
-  const peerDogBreed = String(raw.peerDogBreed ?? raw.peer_dog_breed ?? '').trim();
-  const peerDogGender = String(raw.peerDogGender ?? raw.peer_dog_gender ?? '').trim();
-  const peerDogBirthDate = String(raw.peerDogBirthDate ?? raw.peer_dog_birth_date ?? '').trim();
+  const peerDogName = String(raw.peerDogName ?? '').trim();
+  const peerDogBreed = String(raw.peerDogBreed ?? '').trim();
+  const peerDogGender = String(raw.peerDogGender ?? '').trim();
+  const peerDogBirthDate = String(raw.peerDogBirthDate ?? '').trim();
   const title =
-    String(raw.title ?? raw.peerNickname ?? raw.peer_nickname ?? raw.peerName ?? '채팅').trim() || '채팅';
+    String(raw.peerNickname ?? '채팅').trim() || '채팅';
   const lastMessagePreview =
-    String(raw.lastMessagePreview ?? raw.last_message_preview ?? raw.lastMessage ?? raw.last_message ?? '')
+    String(raw.lastMessagePreview ?? '')
       .replace(/\s+/g, ' ')
       .trim();
-  const unreadRaw = raw.unreadCount ?? raw.unread_count ?? raw.unread ?? 0;
+  const unreadRaw = raw.unreadCount ?? 0;
   const unreadCount = Number.isFinite(Number(unreadRaw)) ? Math.max(0, Number(unreadRaw)) : 0;
-  const updatedAt = String(raw.updatedAt ?? raw.updated_at ?? raw.lastMessageAt ?? raw.last_message_at ?? '');
+  const updatedAt = String(raw.updatedAt ?? '');
 
   return {
     roomId,

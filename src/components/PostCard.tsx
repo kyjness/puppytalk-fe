@@ -120,13 +120,13 @@ export function PostCard({ post, onClick }: PostCardProps) {
   const firstFile =
     Array.isArray(post.files) && post.files.length > 0 ? post.files[0] : null;
   const firstImageUrl = firstFile
-    ? safeImageUrl(firstFile.fileUrl ?? firstFile.file_url, '') || ''
+    ? safeImageUrl(firstFile.fileUrl, '') || ''
     : '';
   const showThumb = Boolean(firstImageUrl);
-  const categoryId = post.categoryId ?? post.categoryid ?? post.category_id ?? null;
+  const categoryId = post.categoryId ?? null;
   const categoryLabel = getPostCategoryLabel(categoryId);
   const tagList = Array.isArray(post.hashtags) ? post.hashtags.map((t) => String(t)) : [];
-  const createdAt = post.createdAt ?? post.created_at ?? '';
+  const createdAt = post.createdAt ?? '';
 
   const metaHeaderRow = (
     <div className="flex items-start justify-between gap-2">

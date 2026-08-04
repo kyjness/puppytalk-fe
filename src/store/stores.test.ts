@@ -6,23 +6,22 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const get = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-const post = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-const patch = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-const del = vi.fn().mockResolvedValue({ code: 'OK', data: null });
+import { resetApiMock } from '../test-utils.js';
 
-vi.mock('../api/client.js', () => ({ api: { get, post, patch, delete: del } }));
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+}));
+vi.mock('../api/client.js', () => ({ api }));
+const { get, patch } = api;
 
 const { useNotificationStore } = await import('./useNotificationStore.js');
 const { useChatStore } = await import('./useChatStore.js');
 const { usePostStore } = await import('./usePostStore.js');
 
-beforeEach(() => {
-  get.mockReset().mockResolvedValue({ code: 'OK', data: null });
-  post.mockClear();
-  patch.mockClear();
-  del.mockClear();
-});
+beforeEach(() => resetApiMock(api));
 
 describe('useNotificationStore', () => {
   it('목록은 size만 보낸다 — 서버가 무시하는 page를 붙이지 않는다', async () => {

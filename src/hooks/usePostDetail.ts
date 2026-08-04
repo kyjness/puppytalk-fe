@@ -23,11 +23,9 @@ const POST_EDIT_MERGE_KEY = (id: string | number) => `pt_post_edit_merge_${id}`;
 // --- 서버 원시 응답 shape (camel/snake 혼재 방어) ---
 interface RawAuthor {
   id?: string;
-  userId?: string;
   nickname?: string;
   profileImageUrl?: string | null;
   representativeDog?: unknown;
-  representative_dog?: unknown;
 }
 
 /** 게시글 첨부 파일 (런타임은 camelCase fileUrl). */
@@ -44,22 +42,13 @@ interface RawPost {
   author?: RawAuthor | null;
   hashtags?: unknown;
   categoryId?: string | number | null;
-  categoryid?: string | number | null;
-  category_id?: string | number | null;
   version?: number | string;
-  Version?: number | string;
   isEdited?: boolean;
-  isedited?: boolean;
   createdAt?: string;
-  createdat?: string;
   files?: unknown;
-  file?: unknown;
   likeCount?: number;
-  like_count?: number;
   viewCount?: number;
-  view_count?: number;
   commentCount?: number;
-  comment_count?: number;
   isLiked?: boolean;
 }
 
@@ -68,21 +57,13 @@ interface RawComment {
   author?: RawAuthor | null;
   replies?: unknown;
   createdAt?: string;
-  created_at?: string;
   updatedAt?: string;
-  updated_at?: string;
   content?: string;
   likeCount?: number;
-  like_count?: number;
   isLiked?: boolean;
-  is_liked?: boolean;
   parentId?: string | null;
-  parent_id?: string | null;
   isEdited?: boolean;
-  is_edited?: boolean;
-  isedited?: boolean;
   isDeleted?: boolean;
-  is_deleted?: boolean;
   replyCount?: number;
   hasMoreReplies?: boolean;
 }
@@ -160,28 +141,22 @@ function updateCommentInTree(
 
 function normalizePost(postData: RawPost, currentUser: AuthUser | null): PostDetailData {
   const author = postData?.author ?? null;
-  const isMine = !!(
-    currentUser &&
-    (author?.id === currentUser.userId || author?.userId === currentUser.userId)
-  );
+  const isMine = !!(currentUser && author?.id === currentUser.userId);
   const hashtagsRaw = postData?.hashtags;
   const hashtags = Array.isArray(hashtagsRaw) ? hashtagsRaw.map((t) => String(t)) : [];
   const categoryId =
-    postData?.categoryId ?? postData?.categoryid ?? postData?.category_id ?? null;
+    postData?.categoryId ?? null;
 
-  const versionRaw = postData?.version ?? postData?.Version;
+  const versionRaw = postData?.version;
   const versionNum =
     typeof versionRaw === 'number'
       ? versionRaw
       : versionRaw != null && Number.isFinite(Number(versionRaw))
         ? Number(versionRaw)
         : null;
-  const isEdited =
-    postData?.isEdited === true ||
-    postData?.isedited === true ||
-    (versionNum !== null && versionNum > 1);
+  const isEdited = postData?.isEdited === true || (versionNum !== null && versionNum > 1);
 
-  const files = (postData?.files ?? (postData?.file ? [postData.file] : [])) as PostFile[];
+  const files = (postData?.files ?? []) as PostFile[];
 
   return {
     id: postData?.id,
@@ -191,14 +166,14 @@ function normalizePost(postData: RawPost, currentUser: AuthUser | null): PostDet
     hashtags,
     isEdited,
     author_nickname: author?.nickname ?? '탈퇴한 사용자',
-    author_id: author?.id ?? author?.userId ?? null,
+    author_id: author?.id ?? null,
     author_profile_image: getProfileImageUrl(currentUser, author, isMine, DEFAULT_PROFILE_IMAGE),
     author_representative_dog: author?.representativeDog ?? null,
-    created_at: postData?.createdAt ?? postData?.createdat ?? '',
+    created_at: postData?.createdAt ?? '',
     files,
-    likes: postData?.likeCount ?? postData?.like_count ?? 0,
-    views: postData?.viewCount ?? postData?.view_count ?? 0,
-    commentCount: postData?.commentCount ?? postData?.comment_count ?? 0,
+    likes: postData?.likeCount ?? 0,
+    views: postData?.viewCount ?? 0,
+    commentCount: postData?.commentCount ?? 0,
     isLiked: postData?.isLiked ?? false,
     isMine,
   };
@@ -206,11 +181,8 @@ function normalizePost(postData: RawPost, currentUser: AuthUser | null): PostDet
 
 function normalizeComment(c: RawComment, currentUser: AuthUser | null): CommentNode {
   const author = c?.author ?? null;
-  const isMine = !!(
-    currentUser &&
-    (author?.id === currentUser.userId || author?.userId === currentUser.userId)
-  );
-  const repDog = author?.representativeDog ?? author?.representative_dog ?? null;
+  const isMine = !!(currentUser && author?.id === currentUser.userId);
+  const repDog = author?.representativeDog ?? null;
   const replies = Array.isArray(c?.replies)
     ? c.replies.map((r) => normalizeComment(r as RawComment, currentUser))
     : [];
@@ -220,20 +192,20 @@ function normalizeComment(c: RawComment, currentUser: AuthUser | null): CommentN
     author_nickname: author?.nickname ?? '탈퇴한 사용자',
     author_profile_image: getProfileImageUrl(currentUser, author, isMine, DEFAULT_PROFILE_IMAGE),
     author_representative_dog: repDog,
-    author_id: author?.id ?? author?.userId ?? null,
-    created_at: c?.createdAt ?? c?.created_at ?? '',
-    updated_at: c?.updatedAt ?? c?.updated_at ?? '',
+    author_id: author?.id ?? null,
+    created_at: c?.createdAt ?? '',
+    updated_at: c?.updatedAt ?? '',
     content: c?.content ?? '',
     isMine,
-    likeCount: c?.likeCount ?? c?.like_count ?? 0,
-    isLiked: c?.isLiked ?? c?.is_liked ?? false,
-    parentId: c?.parentId ?? c?.parent_id ?? null,
+    likeCount: c?.likeCount ?? 0,
+    isLiked: c?.isLiked ?? false,
+    parentId: c?.parentId ?? null,
     replies,
     // 서버 집계가 없으면 preview 길이로 대체 — 그 경우 "더보기"는 뜨지 않는다.
     replyCount: c?.replyCount ?? replies.length,
     hasMoreReplies: c?.hasMoreReplies ?? false,
-    isEdited: c?.isEdited === true || c?.is_edited === true || c?.isedited === true,
-    isDeleted: c?.isDeleted ?? c?.is_deleted ?? false,
+    isEdited: c?.isEdited === true,
+    isDeleted: c?.isDeleted ?? false,
   };
 }
 
@@ -682,19 +654,14 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
           : apiPost('/v1/likes/comments/{comment_id}', { path: { comment_id: commentId } });
         const res = await req;
         const data = (res?.data ?? res) as RawComment | undefined;
-        if (
-          data?.likeCount !== undefined ||
-          data?.like_count !== undefined ||
-          data?.isLiked !== undefined ||
-          data?.is_liked !== undefined
-        ) {
+        if (data?.likeCount !== undefined || data?.isLiked !== undefined) {
           setCommentsOverride((prev) =>
             (prev ?? baseComments).map((c) =>
               c.id === commentId
                 ? {
                     ...c,
-                    likeCount: data.likeCount ?? data.like_count ?? c.likeCount,
-                    isLiked: data.isLiked ?? data.is_liked ?? c.isLiked,
+                    likeCount: data.likeCount ?? c.likeCount,
+                    isLiked: data.isLiked ?? c.isLiked,
                   }
                 : c
             )

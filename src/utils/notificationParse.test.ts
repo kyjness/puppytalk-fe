@@ -36,11 +36,6 @@ describe('parseNotificationListResponse', () => {
     expect(res.hasMore).toBe(true);
   });
 
-  it('snake_case has_more도 받아들인다', () => {
-    const res = parseNotificationListResponse({ data: { items: [item('a')], has_more: true } });
-    expect(res.hasMore).toBe(true);
-  });
-
   it('items가 없거나 형식이 어긋나면 빈 목록·hasMore=false', () => {
     expect(parseNotificationListResponse(null).items).toEqual([]);
     expect(parseNotificationListResponse({}).hasMore).toBe(false);

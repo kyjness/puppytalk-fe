@@ -10,20 +10,23 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const get = vi.fn().mockResolvedValue({ code: 'OK', data: [] });
-const post = vi.fn().mockResolvedValue({ code: 'OK', data: null });
+import { resetApiMock } from '../test-utils.js';
 
-vi.mock('../api/client.js', () => ({ api: { get, post, patch: vi.fn(), delete: vi.fn() } }));
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+}));
+vi.mock('../api/client.js', () => ({ api }));
+const { get, post } = api;
 
 const { ReportModal } = await import('./PostDetail/ReportModal.js');
 const { TrendingHashtags } = await import('./TrendingHashtags.js');
 
 const wrap = (ui: ReactNode) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
-beforeEach(() => {
-  get.mockReset().mockResolvedValue({ code: 'OK', data: [] });
-  post.mockReset().mockResolvedValue({ code: 'OK', data: null });
-});
+beforeEach(() => resetApiMock(api, []));
 
 describe('ReportModal', () => {
   it('선택한 대상·사유를 그대로 실어 보낸다', async () => {

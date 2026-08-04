@@ -6,12 +6,20 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const get = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-vi.mock('./client.js', () => ({ api: { get, post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
+import { resetApiMock } from '../test-utils.js';
+
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+}));
+vi.mock('./client.js', () => ({ api }));
+const { get } = api;
 
 const { fetchPostsFeedPage, fetchTrendingPosts } = await import('./posts.js');
 
-beforeEach(() => get.mockClear());
+beforeEach(() => resetApiMock(api));
 
 describe('fetchPostsFeedPage', () => {
   it('빈 검색어·카테고리 전체·커서 없음이면 size만 보낸다', async () => {

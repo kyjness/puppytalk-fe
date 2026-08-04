@@ -27,10 +27,10 @@ function _normalizeTrendingList(envelope: unknown): TrendingPostRow[] {
       return {
         id: (row.id as string | number) ?? '',
         title: String(row.title ?? '').trim(),
-        categoryId: (row.categoryId ?? row.category_id ?? null) as string | number | null,
-        commentCount: Number(row.commentCount ?? row.comment_count ?? 0),
-        likeCount: Number(row.likeCount ?? row.like_count ?? 0),
-        viewCount: Number(row.viewCount ?? row.view_count ?? 0),
+        categoryId: (row.categoryId ?? null) as string | number | null,
+        commentCount: Number(row.commentCount ?? 0),
+        likeCount: Number(row.likeCount ?? 0),
+        viewCount: Number(row.viewCount ?? 0),
       };
     })
     .filter((p) => p.id != null && p.id !== '');

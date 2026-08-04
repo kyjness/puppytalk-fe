@@ -9,20 +9,22 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const get = vi.fn();
-const post = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-vi.mock('../../api/client.js', () => ({
-  api: { get, post, patch: vi.fn(), delete: vi.fn() },
+import { resetApiMock } from '../../test-utils.js';
+
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
 }));
+vi.mock('../../api/client.js', () => ({ api }));
+const { get, post } = api;
 
 const { BlockManagement } = await import('./BlockManagement.js');
 
 const user = (id: string) => ({ id, nickname: `유저${id}`, profileImageUrl: null });
 
-beforeEach(() => {
-  get.mockReset();
-  post.mockClear();
-});
+beforeEach(() => resetApiMock(api));
 
 describe('BlockManagement', () => {
   it('첫 요청은 커서 없이 size만 보낸다', async () => {

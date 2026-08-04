@@ -3,31 +3,30 @@
  *
  * 방 id·상대 유저 id가 서로 다른 경로에 들어가는데 둘 다 string이라 타입은 구분하지 못한다.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const get = vi.fn().mockResolvedValue({ code: 'OK', data: null });
-const post = vi.fn().mockResolvedValue({ code: 'OK', data: { roomId: 'room-new' } });
+import { createWrapper, ok, resetApiMock } from '../test-utils.js';
 
-vi.mock('../api/client.js', () => ({
-  api: { get, post, patch: vi.fn(), delete: vi.fn() },
+const api = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
 }));
+vi.mock('../api/client.js', () => ({ api }));
+const { get, post } = api;
 
 const { useMarkChatRoomRead } = await import('./useMarkChatRoomRead.js');
 const { useChatRoomPeerInfo } = await import('./useChatRoomPeerInfo.js');
 const { useRecentChatRooms } = await import('./useRecentChatRooms.js');
 const { useNavigateToDirectChat } = await import('./useNavigateToDirectChat.js');
 
-function wrapper({ children }: { children: ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-}
+const wrapper = createWrapper({ router: false });
 
 beforeEach(() => {
-  get.mockReset().mockResolvedValue({ code: 'OK', data: { items: [] } });
-  post.mockReset().mockResolvedValue({ code: 'OK', data: { roomId: 'room-new' } });
+  resetApiMock(api, { items: [] });
+  post.mockResolvedValue(ok({ roomId: 'room-new' }));
 });
 
 describe('useMarkChatRoomRead', () => {

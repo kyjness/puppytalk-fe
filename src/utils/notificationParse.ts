@@ -104,7 +104,7 @@ export function parseNotificationListResponse(res: unknown): NotificationListRes
     const bag = page as Record<string, unknown>;
     const list = bag.items ?? bag.Items;
     rawItems = Array.isArray(list) ? list : [];
-    hasMore = Boolean(bag.hasMore ?? bag.has_more);
+    hasMore = Boolean(bag.hasMore);
     const t = bag.total ?? bag.Total;
     total = typeof t === 'number' && Number.isFinite(t) ? t : 0;
   }

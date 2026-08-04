@@ -36,7 +36,6 @@ function _normalizePageFromEnvelope(envelope: unknown): FeedPage {
   const payload = ((envelope as { data?: unknown })?.data ?? envelope ?? {}) as {
     items?: unknown;
     hasMore?: boolean;
-    has_more?: boolean;
   };
   const list = Array.isArray(payload.items) ? payload.items : [];
   const normalized: FeedPost[] = list.map((raw) => {
@@ -46,13 +45,13 @@ function _normalizePageFromEnvelope(envelope: unknown): FeedPage {
       rawAuthor && typeof rawAuthor === 'object'
         ? {
             ...rawAuthor,
-            userId: (rawAuthor.id ?? rawAuthor.userId) as string | undefined,
+            userId: rawAuthor.id as string | undefined,
             nickname: (rawAuthor.nickname as string) ?? '',
           }
         : null;
     return { ...p, author: authorNorm };
   });
-  const hasMore = Boolean(payload.hasMore ?? payload.has_more);
+  const hasMore = Boolean(payload.hasMore);
   return { items: normalized, hasMore };
 }
 
