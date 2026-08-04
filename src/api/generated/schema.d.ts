@@ -888,7 +888,7 @@ export interface components {
         /** AccessTokenData */
         AccessTokenData: {
             /** Accesstoken */
-            accesstoken: string;
+            accessToken: string;
         };
         /** ActivatedResponse */
         ActivatedResponse: {
@@ -915,7 +915,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ActivatedResponse] */
         ApiResponse_ActivatedResponse_: {
@@ -929,7 +929,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[AvailabilityData] */
         ApiResponse_AvailabilityData_: {
@@ -943,7 +943,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[BlindedResponse] */
         ApiResponse_BlindedResponse_: {
@@ -957,7 +957,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[BlockToggleResponse] */
         ApiResponse_BlockToggleResponse_: {
@@ -971,7 +971,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[BlocksData] */
         ApiResponse_BlocksData_: {
@@ -985,7 +985,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ChatDirectRoomData] */
         ApiResponse_ChatDirectRoomData_: {
@@ -999,7 +999,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ChatRoomPeerInfoData] */
         ApiResponse_ChatRoomPeerInfoData_: {
@@ -1013,7 +1013,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ChatRoomsListData] */
         ApiResponse_ChatRoomsListData_: {
@@ -1027,7 +1027,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[CommentIdData] */
         ApiResponse_CommentIdData_: {
@@ -1041,7 +1041,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[CursorPage[ChatMessageItem]] */
         ApiResponse_CursorPage_ChatMessageItem__: {
@@ -1055,7 +1055,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[CursorPage[CommentResponse]] */
         ApiResponse_CursorPage_CommentResponse__: {
@@ -1069,7 +1069,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[CursorPage[NotificationItem]] */
         ApiResponse_CursorPage_NotificationItem__: {
@@ -1083,7 +1083,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[CursorPage[PostResponse]] */
         ApiResponse_CursorPage_PostResponse__: {
@@ -1097,7 +1097,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ImageUploadResponse] */
         ApiResponse_ImageUploadResponse_: {
@@ -1111,7 +1111,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[LikeResponseData] */
         ApiResponse_LikeResponseData_: {
@@ -1125,7 +1125,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[LoginSuccessData] */
         ApiResponse_LoginSuccessData_: {
@@ -1139,7 +1139,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[MarkNotificationsReadData] */
         ApiResponse_MarkNotificationsReadData_: {
@@ -1153,7 +1153,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[MediaSweepResponse] */
         ApiResponse_MediaSweepResponse_: {
@@ -1167,7 +1167,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[NoneType] */
         ApiResponse_NoneType_: {
@@ -1182,7 +1182,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[PaginatedResponse[ReportedPostItem]] */
         ApiResponse_PaginatedResponse_ReportedPostItem__: {
@@ -1196,7 +1196,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[PostIdData] */
         ApiResponse_PostIdData_: {
@@ -1210,7 +1210,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[PostResponse] */
         ApiResponse_PostResponse_: {
@@ -1224,7 +1224,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[PresignUploadResponse] */
         ApiResponse_PresignUploadResponse_: {
@@ -1238,7 +1238,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ReportSubmitData] */
         ApiResponse_ReportSubmitData_: {
@@ -1252,7 +1252,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[ResetReportsResponse] */
         ApiResponse_ResetReportsResponse_: {
@@ -1266,7 +1266,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[RootData] */
         ApiResponse_RootData_: {
@@ -1280,7 +1280,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[SignupImageUploadData] */
         ApiResponse_SignupImageUploadData_: {
@@ -1294,7 +1294,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[SuspendedResponse] */
         ApiResponse_SuspendedResponse_: {
@@ -1308,7 +1308,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[UnblindedResponse] */
         ApiResponse_UnblindedResponse_: {
@@ -1322,7 +1322,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[UserProfileResponse] */
         ApiResponse_UserProfileResponse_: {
@@ -1336,7 +1336,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[dict[str, str]] */
         ApiResponse_dict_str__str__: {
@@ -1353,7 +1353,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[list[TrendingHashtagResponse]] */
         ApiResponse_list_TrendingHashtagResponse__: {
@@ -1368,7 +1368,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /** ApiResponse[list[TrendingPostResponse]] */
         ApiResponse_list_TrendingPostResponse__: {
@@ -1383,7 +1383,7 @@ export interface components {
              * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
              * @default
              */
-            requestid: string;
+            requestId: string;
         };
         /**
          * AuthorInfo
@@ -1398,17 +1398,17 @@ export interface components {
             /** Nickname */
             nickname: string;
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /** Profileimageurl */
-            profileimageurl?: string | null;
-            representativedog?: components["schemas"]["RepresentativeDogInfo"] | null;
+            profileImageUrl?: string | null;
+            representativeDog?: components["schemas"]["RepresentativeDogInfo"] | null;
         };
         /** AvailabilityData */
         AvailabilityData: {
             /** Emailavailable */
-            emailavailable?: boolean | null;
+            emailAvailable?: boolean | null;
             /** Nicknameavailable */
-            nicknameavailable?: boolean | null;
+            nicknameAvailable?: boolean | null;
         };
         /** BlindedResponse */
         BlindedResponse: {
@@ -1433,7 +1433,7 @@ export interface components {
             /** Nickname */
             nickname: string;
             /** Profileimageurl */
-            profileimageurl?: string | null;
+            profileImageUrl?: string | null;
         };
         /** BlocksData */
         BlocksData: {
@@ -1449,7 +1449,7 @@ export interface components {
              * Roomid
              * @description 엔티티 공개 ID (Base62)
              */
-            roomid: string;
+            roomId: string;
         };
         /** ChatMessageItem */
         ChatMessageItem: {
@@ -1462,21 +1462,21 @@ export interface components {
              * Roomid
              * @description 엔티티 공개 ID (Base62)
              */
-            roomid: string;
+            roomId: string;
             /**
              * Senderid
              * @description 엔티티 공개 ID (Base62)
              */
-            senderid: string;
+            senderId: string;
             /** Content */
             content: string;
             /** Isread */
-            isread: boolean;
+            isRead: boolean;
             /**
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
         };
         /** ChatRoomListItem */
         ChatRoomListItem: {
@@ -1484,65 +1484,65 @@ export interface components {
              * Peeruserid
              * @description 엔티티 공개 ID (Base62)
              */
-            peeruserid: string;
+            peerUserId: string;
             /**
              * Peernickname
              * @description 상대방 닉네임(표시명)
              * @default
              */
-            peernickname: string;
+            peerNickname: string;
             /**
              * Peerprofileimageurl
              * @description 상대방 프로필 이미지 URL
              */
-            peerprofileimageurl?: string | null;
+            peerProfileImageUrl?: string | null;
             /**
              * Peerdogprofileimageurl
              * @description 상대 대표견 프로필 이미지 URL
              */
-            peerdogprofileimageurl?: string | null;
+            peerDogProfileImageUrl?: string | null;
             /**
              * Peerdogname
              * @description 상대 대표견 이름
              */
-            peerdogname?: string | null;
+            peerDogName?: string | null;
             /**
              * Peerdogbreed
              * @description 상대 대표견 견종
              */
-            peerdogbreed?: string | null;
+            peerDogBreed?: string | null;
             /**
              * Peerdoggender
              * @description 상대 대표견 성별 코드(male/female)
              */
-            peerdoggender?: string | null;
+            peerDogGender?: string | null;
             /**
              * Peerdogbirthdate
              * @description 상대 대표견 생년월일
              */
-            peerdogbirthdate?: string | null;
+            peerDogBirthDate?: string | null;
             /**
              * Roomid
              * @description 엔티티 공개 ID (Base62)
              */
-            roomid: string;
+            roomId: string;
             /**
              * Lastmessagepreview
              * @description 최근 메시지 미리보기(짧게)
              * @default
              */
-            lastmessagepreview: string;
+            lastMessagePreview: string;
             /**
              * Unreadcount
              * @description 내 기준 미읽음 개수(상대가 보낸 것만)
              * @default 0
              */
-            unreadcount: number;
+            unreadCount: number;
             /**
              * Updatedat
              * @description 최근 메시지 시각
              */
-            updatedat?: string | null;
+            updatedAt?: string | null;
         };
         /** ChatRoomPeerInfoData */
         ChatRoomPeerInfoData: {
@@ -1550,48 +1550,48 @@ export interface components {
              * Peeruserid
              * @description 엔티티 공개 ID (Base62)
              */
-            peeruserid: string;
+            peerUserId: string;
             /**
              * Peernickname
              * @description 상대방 닉네임(표시명)
              * @default
              */
-            peernickname: string;
+            peerNickname: string;
             /**
              * Peerprofileimageurl
              * @description 상대방 프로필 이미지 URL
              */
-            peerprofileimageurl?: string | null;
+            peerProfileImageUrl?: string | null;
             /**
              * Peerdogprofileimageurl
              * @description 상대 대표견 프로필 이미지 URL
              */
-            peerdogprofileimageurl?: string | null;
+            peerDogProfileImageUrl?: string | null;
             /**
              * Peerdogname
              * @description 상대 대표견 이름
              */
-            peerdogname?: string | null;
+            peerDogName?: string | null;
             /**
              * Peerdogbreed
              * @description 상대 대표견 견종
              */
-            peerdogbreed?: string | null;
+            peerDogBreed?: string | null;
             /**
              * Peerdoggender
              * @description 상대 대표견 성별 코드(male/female)
              */
-            peerdoggender?: string | null;
+            peerDogGender?: string | null;
             /**
              * Peerdogbirthdate
              * @description 상대 대표견 생년월일
              */
-            peerdogbirthdate?: string | null;
+            peerDogBirthDate?: string | null;
             /**
              * Roomid
              * @description 엔티티 공개 ID (Base62)
              */
-            roomid: string;
+            roomId: string;
         };
         /** ChatRoomsListData */
         ChatRoomsListData: {
@@ -1606,7 +1606,7 @@ export interface components {
              */
             content: string;
             /** Parentid */
-            parentid?: string | null;
+            parentId?: string | null;
         };
         /** CommentIdData */
         CommentIdData: {
@@ -1630,36 +1630,36 @@ export interface components {
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
             /**
              * Updatedat
              * Format: date-time
              */
-            updatedat: string;
+            updatedAt: string;
             /** Postid */
-            postid?: string | null;
+            postId?: string | null;
             /** Parentid */
-            parentid?: string | null;
+            parentId?: string | null;
             /**
              * Likecount
              * @default 0
              */
-            likecount: number;
+            likeCount: number;
             /**
              * Isliked
              * @default false
              */
-            isliked: boolean;
+            isLiked: boolean;
             /**
              * Isedited
              * @default false
              */
-            isedited: boolean;
+            isEdited: boolean;
             /**
              * Isdeleted
              * @default false
              */
-            isdeleted: boolean;
+            isDeleted: boolean;
             /** Replies */
             replies?: components["schemas"]["CommentResponse"][];
         };
@@ -1677,7 +1677,7 @@ export interface components {
          */
         ConfirmSignupUploadRequest: {
             /** Filekey */
-            filekey: string;
+            fileKey: string;
             /** Size */
             size?: number | null;
         };
@@ -1690,7 +1690,7 @@ export interface components {
              * Filekey
              * @description presign 응답 file_key
              */
-            filekey: string;
+            fileKey: string;
             /**
              * Purpose
              * @description profile | post
@@ -1712,7 +1712,7 @@ export interface components {
              * Hasmore
              * @default false
              */
-            hasmore: boolean;
+            hasMore: boolean;
         };
         /** CursorPage[CommentResponse] */
         CursorPage_CommentResponse_: {
@@ -1722,7 +1722,7 @@ export interface components {
              * Hasmore
              * @default false
              */
-            hasmore: boolean;
+            hasMore: boolean;
         };
         /** CursorPage[NotificationItem] */
         CursorPage_NotificationItem_: {
@@ -1732,7 +1732,7 @@ export interface components {
              * Hasmore
              * @default false
              */
-            hasmore: boolean;
+            hasMore: boolean;
         };
         /** CursorPage[PostResponse] */
         CursorPage_PostResponse_: {
@@ -1742,7 +1742,7 @@ export interface components {
              * Hasmore
              * @default false
              */
-            hasmore: boolean;
+            hasMore: boolean;
         };
         /**
          * DogGender
@@ -1765,16 +1765,16 @@ export interface components {
              * Birthdate
              * Format: date
              */
-            birthdate: string;
+            birthDate: string;
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /** Profileimageurl */
-            profileimageurl?: string | null;
+            profileImageUrl?: string | null;
             /**
              * Isrepresentative
              * @default false
              */
-            isrepresentative: boolean;
+            isRepresentative: boolean;
         };
         /** DogProfileUpsertItem */
         DogProfileUpsertItem: {
@@ -1792,14 +1792,14 @@ export interface components {
              * Birthdate
              * Format: date
              */
-            birthdate: string;
+            birthDate: string;
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /**
              * Isrepresentative
              * @default false
              */
-            isrepresentative: boolean;
+            isRepresentative: boolean;
         };
         /** FileInfo */
         FileInfo: {
@@ -1809,9 +1809,9 @@ export interface components {
              */
             id: string;
             /** Fileurl */
-            fileurl?: string | null;
+            fileUrl?: string | null;
             /** Imageid */
-            imageid?: string | null;
+            imageId?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1829,7 +1829,7 @@ export interface components {
              * Fileurl
              * @description 이미지 URL
              */
-            fileurl: string;
+            fileUrl: string;
         };
         /** LikeResponseData */
         LikeResponseData: {
@@ -1837,12 +1837,12 @@ export interface components {
              * Isliked
              * @default false
              */
-            isliked: boolean;
+            isLiked: boolean;
             /**
              * Likecount
              * @default 0
              */
-            likecount: number;
+            likeCount: number;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1868,16 +1868,16 @@ export interface components {
             /** @default ACTIVE */
             status: components["schemas"]["UserStatus"];
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /** Profileimageurl */
-            profileimageurl?: string | null;
+            profileImageUrl?: string | null;
             /** Accesstoken */
-            accesstoken: string;
+            accessToken: string;
         };
         /** MarkNotificationsReadData */
         MarkNotificationsReadData: {
             /** Updatedcount */
-            updatedcount: number;
+            updatedCount: number;
         };
         /**
          * MarkNotificationsReadRequest
@@ -1893,7 +1893,7 @@ export interface components {
              * Sweepstarted
              * @default true
              */
-            sweepstarted: boolean;
+            sweepStarted: boolean;
         };
         /** NotificationItem */
         NotificationItem: {
@@ -1904,18 +1904,18 @@ export interface components {
             id: string;
             kind: components["schemas"]["NotificationKind"];
             /** Actorid */
-            actorid?: string | null;
+            actorId?: string | null;
             /** Postid */
-            postid?: string | null;
+            postId?: string | null;
             /** Commentid */
-            commentid?: string | null;
+            commentId?: string | null;
             /** Readat */
-            readat?: string | null;
+            readAt?: string | null;
             /**
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
         };
         /**
          * NotificationKind
@@ -1931,7 +1931,7 @@ export interface components {
              * Hasmore
              * @default false
              */
-            hasmore: boolean;
+            hasMore: boolean;
             /**
              * Total
              * @default 0
@@ -1945,9 +1945,9 @@ export interface components {
             /** Content */
             content: string;
             /** Imageids */
-            imageids?: string[] | null;
+            imageIds?: string[] | null;
             /** Categoryid */
-            categoryid?: number | null;
+            categoryId?: number | null;
             /** Hashtags */
             hashtags?: string[] | null;
         };
@@ -1974,27 +1974,27 @@ export interface components {
              * Viewcount
              * @default 0
              */
-            viewcount: number;
+            viewCount: number;
             /**
              * Likecount
              * @default 0
              */
-            likecount: number;
+            likeCount: number;
             /**
              * Commentcount
              * @default 0
              */
-            commentcount: number;
+            commentCount: number;
             /**
              * Isliked
              * @default false
              */
-            isliked: boolean;
+            isLiked: boolean;
             author?: components["schemas"]["AuthorInfo"] | null;
             /** Files */
             files?: components["schemas"]["FileInfo"][];
             /** Categoryid */
-            categoryid?: number | null;
+            categoryId?: number | null;
             /** Hashtags */
             hashtags?: string[];
             /**
@@ -2006,9 +2006,9 @@ export interface components {
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
             /** Isedited */
-            readonly isedited: boolean;
+            readonly isEdited: boolean;
         };
         /** PostUpdateRequest */
         PostUpdateRequest: {
@@ -2017,9 +2017,9 @@ export interface components {
             /** Content */
             content?: string | null;
             /** Imageids */
-            imageids?: string[] | null;
+            imageIds?: string[] | null;
             /** Categoryid */
-            categoryid?: number | null;
+            categoryId?: number | null;
             /** Hashtags */
             hashtags?: string[] | null;
             /**
@@ -2042,7 +2042,7 @@ export interface components {
              * Contenttype
              * @description 업로드 Content-Type (image/jpeg, image/png, image/webp)
              */
-            contenttype: string;
+            contentType: string;
         };
         /**
          * PresignUploadResponse
@@ -2065,17 +2065,17 @@ export interface components {
              * Filekey
              * @description pending/{uuid}/파일명 — confirm 시 동일 값 전달
              */
-            filekey: string;
+            fileKey: string;
         };
         /** ReportCreateRequest */
         ReportCreateRequest: {
             /** @description 신고 대상: POST(게시글) | COMMENT(댓글) */
-            targettype: components["schemas"]["TargetType"];
+            targetType: components["schemas"]["TargetType"];
             /**
              * Targetid
              * @description 대상 ID (게시글 또는 댓글, Base62)
              */
-            targetid: string;
+            targetId: string;
             /** @description 신고 사유 (스팸|욕설|부적절한 콘텐츠|기타) */
             reason: components["schemas"]["ReportReason"];
         };
@@ -2108,14 +2108,14 @@ export interface components {
             /** Nickname */
             nickname: string;
             /** Profileimageurl */
-            profileimageurl?: string | null;
+            profileImageUrl?: string | null;
             /** Status */
             status?: string | null;
         };
         /** ReportedPostItem */
         ReportedPostItem: {
             /** Targettype */
-            targettype: string;
+            targetType: string;
             /**
              * Id
              * @description 엔티티 공개 ID (Base62)
@@ -2125,44 +2125,44 @@ export interface components {
              * Postid
              * @description 엔티티 공개 ID (Base62)
              */
-            postid: string;
+            postId: string;
             /** Title */
             title: string;
             /**
              * Contentpreview
              * @default
              */
-            contentpreview: string;
+            contentPreview: string;
             /**
              * Userid
              * @description 엔티티 공개 ID (Base62)
              */
-            userid: string;
+            userId: string;
             author?: components["schemas"]["ReportedPostAuthorInfo"] | null;
             /** Authorstatus */
-            authorstatus?: string | null;
+            authorStatus?: string | null;
             /**
              * Reportcount
              * @default 0
              */
-            reportcount: number;
+            reportCount: number;
             /**
              * Reportreasons
              * @default []
              */
-            reportreasons: string[];
+            reportReasons: string[];
             /**
              * Isblinded
              * @default false
              */
-            isblinded: boolean;
+            isBlinded: boolean;
             /**
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
             /** Lastreportedat */
-            lastreportedat?: string | null;
+            lastReportedAt?: string | null;
         };
         /** RepresentativeDogInfo */
         RepresentativeDogInfo: {
@@ -2175,7 +2175,7 @@ export interface components {
              * Birthdate
              * Format: date
              */
-            birthdate: string;
+            birthDate: string;
         };
         /** ResetReportsResponse */
         ResetReportsResponse: {
@@ -2209,7 +2209,7 @@ export interface components {
              * Dogid
              * @description 대표로 지정할 강아지 ID (Base62)
              */
-            dogid: string;
+            dogId: string;
         };
         /** SignUpRequest */
         SignUpRequest: {
@@ -2230,12 +2230,12 @@ export interface components {
              */
             nickname: string;
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /**
              * Signuptoken
              * @description 업로드 토큰 (Redis Upload Token)
              */
-            signuptoken?: string | null;
+            signupToken?: string | null;
         };
         /** SignupImageUploadData */
         SignupImageUploadData: {
@@ -2248,12 +2248,12 @@ export interface components {
              * Fileurl
              * @description 이미지 URL
              */
-            fileurl: string;
+            fileUrl: string;
             /**
              * Signuptoken
              * @description 업로드 토큰 (Redis Upload Token)
              */
-            signuptoken: string;
+            signupToken: string;
         };
         /** SuspendedResponse */
         SuspendedResponse: {
@@ -2285,22 +2285,22 @@ export interface components {
             /** Title */
             title: string;
             /** Categoryid */
-            categoryid?: number | null;
+            categoryId?: number | null;
             /**
              * Commentcount
              * @default 0
              */
-            commentcount: number;
+            commentCount: number;
             /**
              * Likecount
              * @default 0
              */
-            likecount: number;
+            likeCount: number;
             /**
              * Viewcount
              * @default 0
              */
-            viewcount: number;
+            viewCount: number;
         };
         /** UnblindedResponse */
         UnblindedResponse: {
@@ -2316,12 +2316,12 @@ export interface components {
              * Currentpassword
              * @description 현재 비밀번호 (DoS 방지 128자 제한)
              */
-            currentpassword: string;
+            currentPassword: string;
             /**
              * Newpassword
              * @description 새 비밀번호 (8~128자, 형식 검사)
              */
-            newpassword: string;
+            newPassword: string;
         };
         /** UpdateUserRequest */
         UpdateUserRequest: {
@@ -2331,13 +2331,13 @@ export interface components {
              * Profileimageid
              * @description null이면 프로필 이미지 제거
              */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /**
              * Clearprofileimage
              * @description 프로필 이미지 강제 삭제 플래그 (camelCase: clearProfileImage)
              * @default false
              */
-            clearprofileimage: boolean;
+            clearProfileImage: boolean;
             /**
              * Dogs
              * @description 강아지 목록 전체 교체(생성/수정/삭제 반영)
@@ -2364,20 +2364,20 @@ export interface components {
             /** @description ACTIVE|SUSPENDED|WITHDRAWN */
             status: components["schemas"]["UserStatus"];
             /** Profileimageid */
-            profileimageid?: string | null;
+            profileImageId?: string | null;
             /** Profileimageurl */
-            profileimageurl?: string | null;
+            profileImageUrl?: string | null;
             /**
              * Createdat
              * Format: date-time
              */
-            createdat: string;
+            createdAt: string;
             /**
              * Dogs
              * @description 등록된 강아지 목록
              */
             dogs?: components["schemas"]["DogProfileResponse"][];
-            representativedog?: components["schemas"]["RepresentativeDogInfo"] | null;
+            representativeDog?: components["schemas"]["RepresentativeDogInfo"] | null;
         };
         /**
          * UserStatus

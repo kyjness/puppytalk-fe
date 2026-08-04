@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 import type { ApiResponse, ChatMessageRow } from '../api/api-types.js';
 import { api } from '../api/client.js';
+import { nextCursorFromPage } from '../utils/index.js';
 
 export function normalizeChatMessage(raw: Record<string, unknown>): ChatMessageRow {
   return {
@@ -15,14 +16,20 @@ export function normalizeChatMessage(raw: Record<string, unknown>): ChatMessageR
   };
 }
 
-/** DESC 페이지에서 다음(더 과거) 커서 파생 — hasMore면 마지막 item id (posts 목록과 동형). */
-function nextCursorFromDescPage(items: unknown[], hasMore: boolean): string | null {
-  if (!hasMore || items.length === 0) return null;
-  const last = items[items.length - 1];
-  const id =
-    last != null && typeof last === 'object' ? (last as Record<string, unknown>).id : null;
-  const s = id != null ? String(id) : '';
-  return s.length > 0 ? s : null;
+/** 메시지 페이지 1회 조회 — DESC items와 파생 커서(nextCursorFromPage) 반환. */
+async function fetchMessagesPage(
+  roomId: string,
+  limit: number,
+  cursor?: string,
+): Promise<{ items: unknown[]; nextCursor: string | null }> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (cursor) q.set('cursor', cursor);
+  const res = (await api.get(
+    `/chat/rooms/${encodeURIComponent(roomId)}/messages?${q.toString()}`,
+  )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean }>;
+  const data = res?.data;
+  const items = Array.isArray(data?.items) ? data.items : [];
+  return { items, nextCursor: nextCursorFromPage(items, Boolean(data?.hasMore)) };
 }
 
 function dedupeById(list: ChatMessageRow[]): ChatMessageRow[] {
@@ -144,13 +151,8 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       loadingInitialByRoom: { ...s.loadingInitialByRoom, [roomId]: true },
     }));
     try {
-      const res = (await api.get(
-        `/chat/rooms/${encodeURIComponent(roomId)}/messages?limit=${limit}`,
-      )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean; hasmore?: boolean }>;
-      const data = res?.data;
-      const items = Array.isArray(data?.items) ? data.items : [];
-      const hasMore = Boolean(data?.hasMore ?? data?.hasmore);
-      get().replaceWithInitialPage(roomId, items, nextCursorFromDescPage(items, hasMore));
+      const { items, nextCursor } = await fetchMessagesPage(roomId, limit);
+      get().replaceWithInitialPage(roomId, items, nextCursor);
     } finally {
       set((s) => ({
         loadingInitialByRoom: { ...s.loadingInitialByRoom, [roomId]: false },
@@ -160,22 +162,19 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
 
   fetchOlderMessages: async (roomId, limit = 30) => {
     if (!roomId) return;
+    // 인플라이트 가드는 스토어가 소유 — 훅 쪽 React 상태는 IntersectionObserver
+    // 이중 발화 시점에 stale일 수 있어 동일 요청이 중복 발사된다.
+    if (get().loadingOlderByRoom[roomId]) return;
     const cursor = get().nextCursorByRoom[roomId];
     if (cursor == null || cursor === '') return;
     set((s) => ({
       loadingOlderByRoom: { ...s.loadingOlderByRoom, [roomId]: true },
     }));
     try {
-      const q = new URLSearchParams({ limit: String(limit), cursor: cursor });
-      const res = (await api.get(
-        `/chat/rooms/${encodeURIComponent(roomId)}/messages?${q.toString()}`,
-      )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean; hasmore?: boolean }>;
-      const data = res?.data;
-      const items = Array.isArray(data?.items) ? data.items : [];
-      const hasMore = Boolean(data?.hasMore ?? data?.hasmore);
+      const { items, nextCursor } = await fetchMessagesPage(roomId, limit, cursor);
       get().prependMessages(roomId, items);
       set((s) => ({
-        nextCursorByRoom: { ...s.nextCursorByRoom, [roomId]: nextCursorFromDescPage(items, hasMore) },
+        nextCursorByRoom: { ...s.nextCursorByRoom, [roomId]: nextCursor },
       }));
     } finally {
       set((s) => ({

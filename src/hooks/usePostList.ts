@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchPostsFeedPage } from '../api/posts.js';
-import { getApiErrorMessage } from '../utils/index.js';
+import { getApiErrorMessage, nextCursorFromPage } from '../utils/index.js';
 import { validateSearchQueryForFeed } from '../utils/postSearch.js';
 
 const PAGE_SIZE = 10;
@@ -61,13 +61,8 @@ function _postsQueryKey(qTrimmed: string, categoryId: string | number) {
 }
 
 function _getNextCursorFromPage(page: FeedPage | undefined): string | undefined {
-  if (!page?.hasMore || !Array.isArray(page.items) || page.items.length === 0) {
-    return undefined;
-  }
-  const last = page.items[page.items.length - 1];
-  const id = last?.id;
-  if (id == null || id === '') return undefined;
-  return id;
+  // react-query getNextPageParam은 undefined가 "다음 페이지 없음" 신호.
+  return nextCursorFromPage(page?.items ?? [], Boolean(page?.hasMore)) ?? undefined;
 }
 
 export function usePostList() {

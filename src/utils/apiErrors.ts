@@ -22,6 +22,7 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   INTERNAL_SERVER_ERROR: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
   POST_FILE_LIMIT_EXCEEDED: '이미지는 최대 5장까지 첨부할 수 있습니다.',
   POST_HASHTAG_LIMIT_EXCEEDED: '해시태그는 최대 6개까지 입력할 수 있습니다.',
+  DM_SAME_USER: '자기 자신과는 채팅할 수 없습니다.',
   CONFLICT: '요청이 처리 중입니다. 잠시 후 다시 시도해주세요.',
   DB_ERROR: '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
 };

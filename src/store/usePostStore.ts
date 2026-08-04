@@ -103,9 +103,8 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
       }
       const files: FileInfo[] = data.files ?? [];
       const fileRow = (f: FileInfo) => {
-        const fr = f as FileInfo & { imageId?: string; fileUrl?: string };
-        const iid = fr.imageId ?? fr.imageid ?? fr.id;
-        const url = fr.fileUrl ?? fr.fileurl ?? '';
+        const iid = f.imageId ?? f.id;
+        const url = f.fileUrl ?? '';
         return { iid, url };
       };
       const ids = files
