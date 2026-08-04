@@ -36,14 +36,18 @@ function ToastLine({ message, toastId, removeToast }: ToastLineProps) {
   );
 }
 
+// 한 번에 보여주고 받아오는 크기. 커서 페이지네이션이라 상한을 둘 필요가 없다.
+const PAGE_STEP = 6;
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
-  const [pageSize, setPageSize] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
 
   const items = useNotificationStore((s) => s.items);
+  const listCursor = useNotificationStore((s) => s.listCursor);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const listLoading = useNotificationStore((s) => s.listLoading);
   const listError = useNotificationStore((s) => s.listError);
@@ -83,15 +87,12 @@ export function NotificationBell() {
     };
   }, [open, updatePopoverPosition]);
 
+  // 열 때 처음부터 다시 받는다(커서 없이). 이후 "더보기"는 커서로 이어 붙인다.
   useEffect(() => {
     if (!open) return;
-    setPageSize(6);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    void fetchNotifications(pageSize);
-  }, [open, pageSize, fetchNotifications]);
+    setVisibleCount(PAGE_STEP);
+    void fetchNotifications(PAGE_STEP);
+  }, [open, fetchNotifications]);
 
   // 같은 클릭 제스처로 연 직후 리스너가 붙으면 포털/레이아웃보다 먼저 바깥 클릭으로 닫히는 경우가 있어 1틱 지연.
   useEffect(() => {
@@ -151,8 +152,14 @@ export function NotificationBell() {
               loading={listLoading}
               error={Boolean(listError)}
               listHasMore={listHasMore}
-              visibleCount={pageSize}
-              onRequestMore={() => setPageSize((v) => Math.min(60, v + 12))}
+              visibleCount={visibleCount}
+              onRequestMore={() => {
+                // 이미 받아둔 게 남았으면 더 보여주고, 없으면 커서로 다음 페이지를 받는다.
+                setVisibleCount((v) => v + PAGE_STEP);
+                if (visibleCount + PAGE_STEP > items.length && listCursor) {
+                  void fetchNotifications(PAGE_STEP, listCursor);
+                }
+              }}
               onMarkRead={(ids) => void markRead(ids)}
               onMarkAllRead={() => void markRead([])}
             />

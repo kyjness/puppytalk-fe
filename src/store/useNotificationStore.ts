@@ -6,6 +6,7 @@ import {
   parseSseRealtimePayload,
   type NotificationItem,
 } from '../utils/notificationParse.js';
+import { appendDedupedById, nextCursorFromPage } from '../utils/cursorPage.js';
 
 const MAX_SEEN_IDS = 200;
 const MAX_TOASTS = 4;
@@ -22,6 +23,8 @@ interface NotificationState {
   listError: string;
   /** 다음 페이지가 남았는지(서버는 total을 주지 않는다 — CursorPage). */
   listHasMore: boolean;
+  /** 다음 페이지 커서. null=끝. */
+  listCursor: string | null;
   streamConnected: boolean;
   /** 최근 처리한 알림 id (탭 간·SSE 중복 억제) */
   seenNotificationIds: string[];
@@ -34,7 +37,7 @@ interface NotificationActions {
   removeToast: (id: string) => void;
   rememberSeen: (id: string) => void;
   hasSeen: (id: string) => boolean;
-  fetchNotifications: (size?: number) => Promise<void>;
+  fetchNotifications: (size?: number, cursor?: string) => Promise<void>;
   ingestFromStream: (payload: unknown) => void;
   markRead: (ids: string[]) => Promise<void>;
   reset: () => void;
@@ -63,6 +66,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
   listLoading: false,
   listError: '',
   listHasMore: false,
+  listCursor: null,
   streamConnected: false,
   seenNotificationIds: [],
   toasts: [],
@@ -94,19 +98,26 @@ export const useNotificationStore = create<NotificationState & NotificationActio
 
   hasSeen: (id) => get().seenNotificationIds.includes(id),
 
-  /** GET /notifications — 서버는 keyset(cursor)이라 page 번호·total이 없다.
-   *  벨 UI는 상한(60)이 명확해 커서 누적 대신 size를 키워 다시 받는다. */
-  fetchNotifications: async (size = 30) => {
-    set({ listLoading: true, listError: '' });
+  /** GET /notifications — 서버 keyset(cursor). cursor 없이 부르면 처음부터 다시 받는다.
+   *
+   *  이전엔 size를 12씩 키워 전체를 다시 받았는데, 상한(60)에 닿으면 같은 값이라
+   *  리렌더·재조회가 일어나지 않아 61번째부터는 어떤 경로로도 볼 수 없었다.
+   *  이제 커서로 이어 붙인다 — 매 클릭마다 전부 다시 받던 낭비도 사라진다. */
+  fetchNotifications: async (size = 30, cursor?: string) => {
+    set({ listLoading: !cursor, listError: '' });
     try {
-      const res = await apiGet('/v1/notifications', { query: { size } });
+      const res = await apiGet('/v1/notifications', { query: { size, cursor } });
       const { items, hasMore } = parseNotificationListResponse(res);
-      set({
-        items,
-        listHasMore: hasMore,
-        unreadCount: countUnread(items),
-        listLoading: false,
-        listError: '',
+      set((s) => {
+        const next = cursor ? appendDedupedById(s.items, items) : items;
+        return {
+          items: next,
+          listHasMore: hasMore,
+          listCursor: nextCursorFromPage(items, hasMore),
+          unreadCount: countUnread(next),
+          listLoading: false,
+          listError: '',
+        };
       });
     } catch (e) {
       const code = (e as { code?: unknown })?.code;
@@ -178,6 +189,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
       listLoading: false,
       listError: '',
       listHasMore: false,
+      listCursor: null,
       streamConnected: false,
       seenNotificationIds: [],
       toasts: [],

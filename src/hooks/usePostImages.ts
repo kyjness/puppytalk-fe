@@ -82,17 +82,21 @@ export function usePostImages(
   }, []);
 
   const removeNew = useCallback(async (index: number) => {
+    // 삭제 요청은 업데이터 **밖**에서 — StrictMode는 업데이터를 두 번 호출하므로
+    // 안에서 쏘면 DELETE가 두 번 나간다(부수효과를 순수 함수에 넣은 대가).
+    let removed: NewImageItem | undefined;
     setNewImages((prev) => {
-      const entry = prev[index];
-      if (!entry) return prev;
-      if (entry.imageId != null) {
-        apiDelete('/v1/media/images/{image_id}', {
-          path: { image_id: entry.imageId },
-        }).catch(() => {});
-      }
-      revokeObjectUrlSafely(entry.objectUrl);
+      removed = prev[index];
+      if (!removed) return prev;
       return prev.filter((_, i) => i !== index);
     });
+    if (!removed) return;
+    revokeObjectUrlSafely(removed.objectUrl);
+    if (removed.imageId != null) {
+      await apiDelete('/v1/media/images/{image_id}', {
+        path: { image_id: removed.imageId },
+      }).catch(() => {});
+    }
   }, []);
 
   const uploadNewImages = useCallback(async () => {

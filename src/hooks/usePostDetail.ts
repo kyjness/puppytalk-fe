@@ -139,6 +139,26 @@ function updateCommentInTree(
   });
 }
 
+/** 루트별 preview 뒤에 "더보기"로 받은 대댓글을 이어 붙인다(id 기준 dedupe). */
+function mergeReplyExtras(
+  roots: CommentNode[],
+  extras: Record<string, { items: CommentNode[]; hasMore: boolean }>
+): CommentNode[] {
+  if (Object.keys(extras).length === 0) return roots;
+  return roots.map((c) => {
+    const extra = c.id ? extras[c.id] : undefined;
+    // 빈 페이지(요청 사이에 대댓글이 삭제된 경우)여도 hasMore는 반영해야 한다 —
+    // 안 그러면 서버 초기값(true)이 남아 눌러도 아무 일 없는 버튼이 계속 보인다.
+    if (!extra) return c;
+    return {
+      ...c,
+      replies: appendDedupedById(c.replies, extra.items),
+      hasMoreReplies: extra.hasMore,
+    };
+  });
+}
+
+
 function normalizePost(postData: RawPost, currentUser: AuthUser | null): PostDetailData {
   const author = postData?.author ?? null;
   const isMine = !!(currentUser && author?.id === currentUser.userId);
@@ -365,7 +385,11 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
   });
   const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
   const [replyForm, setReplyForm] = useState({ content: '', submitting: false });
-  const [commentsOverride, setCommentsOverride] = useState<CommentNode[] | null>(null);
+  // 낙관적 갱신은 **id별 패치**로 둔다. 리스트를 통째로 덮으면 페이지 누적(fetchNextPage)이
+  // 그 스냅샷에 가려 화면이 얼어붙는다 — 좋아요 한 번에 "더 보기"가 죽던 원인.
+  const [optimisticPatches, setOptimisticPatches] = useState<
+    Record<string, Partial<CommentNode>>
+  >({});
 
   const isLikingRef = useRef(false);
   const pendingCommentLikeIdsRef = useRef<Set<string>>(new Set());
@@ -400,23 +424,15 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     [commentsQuery.data?.pages]
   );
 
-  // preview + 이어받은 대댓글을 합쳐 내려보낸다. id 기준 dedupe — 낙관적 갱신이나
-  // 재조회로 preview가 갱신될 때 같은 대댓글이 두 번 붙는 것을 막는다.
+  // 서버 페이지 + 이어받은 대댓글 + 낙관적 패치를 **합성**한다. 셋 중 하나가 나머지를
+  // 덮으면 안 된다 — 예전엔 낙관적 갱신이 리스트를 통째로 덮어 페이지 누적이 가려졌다.
   const comments = useMemo(() => {
-    const base = commentsOverride ?? fetchedComments;
-    if (Object.keys(replyExtras).length === 0) return base;
-    return base.map((c) => {
-      const extra = c.id ? replyExtras[c.id] : undefined;
-      // 빈 페이지(요청 사이에 대댓글이 삭제된 경우)여도 hasMore는 반영해야 한다 —
-      // 안 그러면 서버 초기값(true)이 남아 눌러도 아무 일 없는 버튼이 계속 보인다.
-      if (!extra) return c;
-      return {
-        ...c,
-        replies: appendDedupedById(c.replies, extra.items),
-        hasMoreReplies: extra.hasMore,
-      };
-    });
-  }, [commentsOverride, fetchedComments, replyExtras]);
+    const merged = mergeReplyExtras(fetchedComments, replyExtras);
+    return Object.entries(optimisticPatches).reduce(
+      (acc, [id, patch]) => updateCommentInTree(acc, id, patch),
+      merged
+    );
+  }, [fetchedComments, replyExtras, optimisticPatches]);
 
   // loadMoreReplies가 커서를 읽을 때 쓰는 최신 스냅샷 — 의존성으로 넣으면 콜백이 매 변경마다
   // 새로 만들어져 목록 전체가 다시 조립된다.
@@ -430,8 +446,9 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
   }, [queryClient, postId]);
 
   const loadComments = useCallback(async () => {
-    setCommentsOverride(null);
-    setReplyExtras({});
+    // replyExtras는 비우지 않는다 — 커서 축이 그대로라 유효하고, 비우면 새 댓글 하나에
+    // 펼쳐둔 스레드가 전부 접힌다. 축이 바뀌는 정렬 변경에서만 비운다(setCommentSort).
+    setOptimisticPatches({});
     await queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
   }, [queryClient, postId]);
 
@@ -607,17 +624,15 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
           body: { content: newContent.trim() },
         });
         setCommentEdit({ editingId: null, content: '' });
-        setCommentsOverride((prev) =>
-          updateCommentInTree(prev ?? fetchedComments, commentId, {
-            content: newContent.trim(),
-            isEdited: true,
-          })
-        );
+        setOptimisticPatches((prev) => ({
+          ...prev,
+          [commentId]: { ...prev[commentId], content: newContent.trim(), isEdited: true },
+        }));
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '댓글 수정에 실패했습니다.'));
       }
     },
-    [postId, fetchedComments]
+    [postId]
   );
 
   const handleCommentLike = useCallback(
@@ -632,21 +647,17 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       }
       setMessage('');
       pendingCommentLikeIdsRef.current.add(commentId);
-      const baseComments = commentsOverride ?? fetchedComments;
-      const comment = baseComments.find((c) => c.id === commentId);
+      const comment = commentsRef.current.find((c) => c.id === commentId);
       const isCurrentlyLiked = comment?.isLiked ?? false;
-
-      setCommentsOverride((prev) =>
-        (prev ?? baseComments).map((c) => {
-          if (c.id !== commentId) return c;
-          const nextLiked = !c.isLiked;
-          return {
-            ...c,
-            isLiked: nextLiked,
-            likeCount: Math.max(0, (c.likeCount ?? 0) + (nextLiked ? 1 : -1)),
-          };
-        })
-      );
+      const nextLiked = !isCurrentlyLiked;
+      setOptimisticPatches((prev) => ({
+        ...prev,
+        [commentId]: {
+          ...prev[commentId],
+          isLiked: nextLiked,
+          likeCount: Math.max(0, (comment?.likeCount ?? 0) + (nextLiked ? 1 : -1)),
+        },
+      }));
 
       try {
         const req = isCurrentlyLiked
@@ -655,17 +666,14 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         const res = await req;
         const data = (res?.data ?? res) as RawComment | undefined;
         if (data?.likeCount !== undefined || data?.isLiked !== undefined) {
-          setCommentsOverride((prev) =>
-            (prev ?? baseComments).map((c) =>
-              c.id === commentId
-                ? {
-                    ...c,
-                    likeCount: data.likeCount ?? c.likeCount,
-                    isLiked: data.isLiked ?? c.isLiked,
-                  }
-                : c
-            )
-          );
+          setOptimisticPatches((prev) => ({
+            ...prev,
+            [commentId]: {
+              ...prev[commentId],
+              ...(data.likeCount !== undefined ? { likeCount: data.likeCount } : {}),
+              ...(data.isLiked !== undefined ? { isLiked: data.isLiked } : {}),
+            },
+          }));
         }
       } catch (err) {
         if ((err as { status?: number })?.status === 401) {
@@ -674,16 +682,11 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
           navigate('/login');
           return;
         }
-        setCommentsOverride((prev) =>
-          (prev ?? baseComments).map((c) => {
-            if (c.id !== commentId) return c;
-            return {
-              ...c,
-              isLiked: c.isLiked ?? false,
-              likeCount: Math.max(0, (c.likeCount ?? 0) + (c.isLiked ? -1 : 1)),
-            };
-          })
-        );
+        // 롤백 = 패치 제거. 직접 역연산하면 서버 확정분과 겹쳐 어긋난다.
+        setOptimisticPatches((prev) => {
+          const { [commentId]: _dropped, ...rest } = prev;
+          return rest;
+        });
         setMessage(
           getApiErrorMessage(getClientErrorCode(err), '댓글 좋아요 처리에 실패했습니다.')
         );
@@ -691,7 +694,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         pendingCommentLikeIdsRef.current.delete(commentId);
       }
     },
-    [postId, user, navigate, commentsOverride, fetchedComments]
+    [postId, user, navigate]
   );
 
   const handlePostDelete = useCallback(async () => {

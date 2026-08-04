@@ -94,6 +94,38 @@ describe('usePostDetail 요청 URL', () => {
     expect(repliesUrl).toBe(`/posts/${POST_ID}/comments/${rootId}/replies?size=10&sort=latest&cursor=r1`);
   });
 
+  it('좋아요 후 "더 보기"가 2페이지를 실제로 렌더한다', async () => {
+    // 낙관적 갱신이 리스트를 통째로 덮던 시절엔 여기서 화면이 얼어붙어 2페이지가
+    // 영영 안 보였다(버튼도 곧 사라진다).
+    const page = (ids: string[], hasMore: boolean) => ({
+      code: 'OK',
+      data: {
+        items: ids.map((id) => ({ id, content: id, replies: [], likeCount: 0, isLiked: false })),
+        hasMore,
+      },
+    });
+    get.mockImplementation((url: string) => {
+      if (!url.includes('/comments')) return Promise.resolve({ code: 'OK', data: { id: POST_ID } });
+      return Promise.resolve(
+        url.includes('cursor=') ? page(['c3', 'c4'], false) : page(['c1', 'c2'], true)
+      );
+    });
+    post.mockResolvedValue({ code: 'OK', data: { likeCount: 1, isLiked: true } });
+
+    const { result } = mountHook();
+    await waitFor(() => expect(result.current.comments.length).toBe(2));
+
+    await result.current.handleCommentLike('c1');
+    await waitFor(() => expect(result.current.comments[0].isLiked).toBe(true));
+
+    result.current.loadMoreComments();
+
+    await waitFor(() => expect(result.current.comments.length).toBe(4));
+    expect(result.current.comments.map((c) => c.id)).toEqual(['c1', 'c2', 'c3', 'c4']);
+    // 낙관적 갱신도 살아 있어야 한다 — 페이지 누적이 그것을 지워도 안 된다.
+    expect(result.current.comments[0].isLiked).toBe(true);
+  });
+
   it('댓글 등록은 게시글 경로 + 본문에 content', async () => {
     const { result } = mountHook();
     await waitFor(() => expect(get).toHaveBeenCalled());

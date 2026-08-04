@@ -588,8 +588,9 @@ const CommentItem = React.memo(function CommentItem({
   );
 }, arePropsEqual);
 
+// 서버가 지원하는 값만 노출한다 — 인기순은 BE에서 의도적으로 제거됐고, 보내봐야
+// latest로 조용히 떨어진다(사용자에겐 "정렬이 안 먹는" 것으로 보인다).
 const COMMENT_SORTS = [
-  { value: 'popular', label: '인기순' },
   { value: 'latest', label: '최신순' },
   { value: 'oldest', label: '등록순' },
 ];

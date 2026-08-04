@@ -53,16 +53,17 @@ export function BlockManagement() {
   }, [fetchBlocks]);
 
   const handleUnblock = async (userId: string) => {
-    const prevList = list;
-    const nextList = prevList.filter((item) => item.id !== userId);
-    setList(nextList);
+    // 롤백은 **해당 항목만** 되돌린다. 클릭 시점 스냅샷을 통째로 복원하면 요청 중에
+    // "더 보기"로 받아둔 페이지가 사라지는데, 커서는 이미 그 너머로 가 있어 복구되지 않는다.
+    const removed = list.find((item) => item.id === userId);
+    setList((prev) => prev.filter((item) => item.id !== userId));
     try {
       await apiPost('/v1/users/{target_user_id}/block', { path: { target_user_id: userId } });
     } catch (err) {
       const msg = getApiErrorMessage(getClientErrorCode(err), '차단 해제에 실패했습니다.');
       alert(msg);
       setError(msg);
-      setList(prevList);
+      if (removed) setList((prev) => appendDedupedById(prev, [removed]));
     }
   };
 

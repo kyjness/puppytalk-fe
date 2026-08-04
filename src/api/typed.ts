@@ -96,7 +96,11 @@ export function buildUrl(
   return query ? `${url}?${query}` : url;
 }
 
-export function apiGet<P extends PathsFor<'get'>>(
+/**
+ * 네 래퍼 모두 `async` — buildUrl(경로 파라미터 누락 등)이 **동기로 throw**하면 호출부가
+ * 붙인 `.catch`가 못 잡는다. async로 감싸면 그 실패도 거부(rejection)로 흐른다.
+ */
+export async function apiGet<P extends PathsFor<'get'>>(
   path: P,
   options: RequestOptions<OpOf<P, 'get'>>
 ): Promise<OkOf<OpOf<P, 'get'>>> {
@@ -104,7 +108,7 @@ export function apiGet<P extends PathsFor<'get'>>(
   return api.get(buildUrl(path, o));
 }
 
-export function apiPost<P extends PathsFor<'post'>>(
+export async function apiPost<P extends PathsFor<'post'>>(
   path: P,
   options: RequestOptions<OpOf<P, 'post'>>,
   init?: { headers?: Record<string, string> }
@@ -113,7 +117,7 @@ export function apiPost<P extends PathsFor<'post'>>(
   return api.post(buildUrl(path, o), o.body, init);
 }
 
-export function apiPatch<P extends PathsFor<'patch'>>(
+export async function apiPatch<P extends PathsFor<'patch'>>(
   path: P,
   options: RequestOptions<OpOf<P, 'patch'>>
 ): Promise<OkOf<OpOf<P, 'patch'>>> {
@@ -121,7 +125,7 @@ export function apiPatch<P extends PathsFor<'patch'>>(
   return api.patch(buildUrl(path, o), o.body);
 }
 
-export function apiDelete<P extends PathsFor<'delete'>>(
+export async function apiDelete<P extends PathsFor<'delete'>>(
   path: P,
   options: RequestOptions<OpOf<P, 'delete'>>
 ): Promise<OkOf<OpOf<P, 'delete'>>> {
