@@ -15,6 +15,7 @@ export function Login() {
     from,
     navigate,
     handleSubmit,
+    handleDemoLogin,
     handleEmailChange,
     handlePasswordChange,
   } = useLogin();
@@ -39,6 +40,7 @@ export function Login() {
             formError={formError}
             submitting={submitting}
             onSubmit={handleSubmit}
+            onDemoLogin={handleDemoLogin}
             onEmailChange={handleEmailChange}
             onPasswordChange={handlePasswordChange}
             onSignupClick={() => navigate('/signup')}
