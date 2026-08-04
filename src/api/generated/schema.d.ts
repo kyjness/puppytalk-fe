@@ -432,17 +432,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/posts/trending-hashtags": {
+    "/v1/posts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Trending Hashtags */
-        get: operations["get_trending_hashtags_v1_posts_trending_hashtags_get"];
+        /** Get Posts */
+        get: operations["get_posts_v1_posts_get"];
         put?: never;
-        post?: never;
+        /** Create Post */
+        post: operations["create_post_v1_posts_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -466,18 +467,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/posts": {
+    "/v1/posts/trending-hashtags": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Posts */
-        get: operations["get_posts_v1_posts_get"];
+        /** Get Trending Hashtags */
+        get: operations["get_trending_hashtags_v1_posts_trending_hashtags_get"];
         put?: never;
-        /** Create Post */
-        post: operations["create_post_v1_posts_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -803,10 +803,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Or Create Direct Room */
-        get: operations["get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Get Or Create Direct Room */
+        post: operations["get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -902,7 +902,7 @@ export interface components {
          * ApiCode
          * @enum {string}
          */
-        ApiCode: "OK" | "SIGNUP_SUCCESS" | "LOGIN_SUCCESS" | "LOGOUT_SUCCESS" | "AUTH_SUCCESS" | "EMAIL_ALREADY_EXISTS" | "NICKNAME_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "UNAUTHORIZED" | "TOKEN_EXPIRED" | "USER_NOT_FOUND" | "USER_WITHDRAWN" | "DOG_UPDATED" | "INTERNAL_SERVER_ERROR" | "POST_NOT_FOUND" | "POST_FILE_LIMIT_EXCEEDED" | "POST_HASHTAG_LIMIT_EXCEEDED" | "LIKE_NOT_FOUND" | "ALREADY_LIKED" | "CONFLICT" | "FORBIDDEN" | "COMMENT_NOT_FOUND" | "INVALID_POSTID_FORMAT" | "INVALID_REQUEST" | "INVALID_REQUEST_BODY" | "INVALID_PASSWORD_FORMAT" | "MISSING_REQUIRED_FIELD" | "INVALID_FILE_FORMAT" | "INVALID_FILE_TYPE" | "IMAGE_NOT_FOUND" | "IMAGE_IN_USE" | "INVALID_IMAGE_FILE" | "SIGNUP_IMAGE_TOKEN_INVALID" | "SIGNUP_IMAGE_TOKEN_ALREADY_USED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "UNPROCESSABLE_ENTITY" | "RATE_LIMIT_EXCEEDED" | "LOGIN_RATE_LIMIT_EXCEEDED" | "CONSTRAINT_ERROR" | "DB_ERROR" | "HTTP_ERROR" | "ALREADY_REPORTED";
+        ApiCode: "OK" | "SIGNUP_SUCCESS" | "LOGIN_SUCCESS" | "LOGOUT_SUCCESS" | "AUTH_SUCCESS" | "EMAIL_ALREADY_EXISTS" | "NICKNAME_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "UNAUTHORIZED" | "TOKEN_EXPIRED" | "USER_NOT_FOUND" | "USER_WITHDRAWN" | "DOG_UPDATED" | "INTERNAL_SERVER_ERROR" | "POST_NOT_FOUND" | "POST_FILE_LIMIT_EXCEEDED" | "POST_HASHTAG_LIMIT_EXCEEDED" | "LIKE_NOT_FOUND" | "ALREADY_LIKED" | "CONFLICT" | "FORBIDDEN" | "COMMENT_NOT_FOUND" | "INVALID_POSTID_FORMAT" | "DM_SAME_USER" | "INVALID_REQUEST" | "INVALID_REQUEST_BODY" | "INVALID_PASSWORD_FORMAT" | "MISSING_REQUIRED_FIELD" | "INVALID_FILE_FORMAT" | "INVALID_FILE_TYPE" | "IMAGE_NOT_FOUND" | "INVALID_IMAGE_FILE" | "SIGNUP_IMAGE_TOKEN_INVALID" | "SIGNUP_IMAGE_TOKEN_ALREADY_USED" | "NOT_FOUND" | "METHOD_NOT_ALLOWED" | "UNPROCESSABLE_ENTITY" | "RATE_LIMIT_EXCEEDED" | "LOGIN_RATE_LIMIT_EXCEEDED" | "CONSTRAINT_ERROR" | "DB_ERROR" | "HTTP_ERROR" | "ALREADY_REPORTED";
         /** ApiResponse[AccessTokenData] */
         ApiResponse_AccessTokenData_: {
             /** Code */
@@ -1001,34 +1001,6 @@ export interface components {
              */
             requestid: string;
         };
-        /** ApiResponse[ChatMessagesPageData] */
-        ApiResponse_ChatMessagesPageData_: {
-            /** Code */
-            code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["ChatMessagesPageData"] | null;
-            /** Message */
-            message?: string | null;
-            /**
-             * Requestid
-             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
-             * @default
-             */
-            requestid: string;
-        };
-        /** ApiResponse[ChatRoomMarkedReadData] */
-        ApiResponse_ChatRoomMarkedReadData_: {
-            /** Code */
-            code: components["schemas"]["ApiCode"] | string;
-            data?: components["schemas"]["ChatRoomMarkedReadData"] | null;
-            /** Message */
-            message?: string | null;
-            /**
-             * Requestid
-             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
-             * @default
-             */
-            requestid: string;
-        };
         /** ApiResponse[ChatRoomPeerInfoData] */
         ApiResponse_ChatRoomPeerInfoData_: {
             /** Code */
@@ -1062,6 +1034,20 @@ export interface components {
             /** Code */
             code: components["schemas"]["ApiCode"] | string;
             data?: components["schemas"]["CommentIdData"] | null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestid: string;
+        };
+        /** ApiResponse[CursorPage[ChatMessageItem]] */
+        ApiResponse_CursorPage_ChatMessageItem__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["CursorPage_ChatMessageItem_"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -1399,7 +1385,10 @@ export interface components {
              */
             requestid: string;
         };
-        /** AuthorInfo */
+        /**
+         * AuthorInfo
+         * @description 게시글·댓글 공용 작성자 표시 스키마. 탈퇴자 익명화 정책의 단일 정의처.
+         */
         AuthorInfo: {
             /**
              * Id
@@ -1489,23 +1478,8 @@ export interface components {
              */
             createdat: string;
         };
-        /** ChatMessagesPageData */
-        ChatMessagesPageData: {
-            /** Items */
-            items: components["schemas"]["ChatMessageItem"][];
-            /**
-             * Nextcursor
-             * @description 다음 페이지(더 과거) 조회 시 쿼리 cursor로 전달할 메시지 공개 ID(Base62)
-             */
-            nextcursor?: string | null;
-        };
         /** ChatRoomListItem */
         ChatRoomListItem: {
-            /**
-             * Roomid
-             * @description 엔티티 공개 ID (Base62)
-             */
-            roomid: string;
             /**
              * Peeruserid
              * @description 엔티티 공개 ID (Base62)
@@ -1524,7 +1498,7 @@ export interface components {
             peerprofileimageurl?: string | null;
             /**
              * Peerdogprofileimageurl
-             * @description 상대 대표 강아지 프로필 이미지 URL
+             * @description 상대 대표견 프로필 이미지 URL
              */
             peerdogprofileimageurl?: string | null;
             /**
@@ -1548,6 +1522,11 @@ export interface components {
              */
             peerdogbirthdate?: string | null;
             /**
+             * Roomid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            roomid: string;
+            /**
              * Lastmessagepreview
              * @description 최근 메시지 미리보기(짧게)
              * @default
@@ -1565,21 +1544,8 @@ export interface components {
              */
             updatedat?: string | null;
         };
-        /** ChatRoomMarkedReadData */
-        ChatRoomMarkedReadData: {
-            /**
-             * Ok
-             * @default true
-             */
-            ok: boolean;
-        };
         /** ChatRoomPeerInfoData */
         ChatRoomPeerInfoData: {
-            /**
-             * Roomid
-             * @description 엔티티 공개 ID (Base62)
-             */
-            roomid: string;
             /**
              * Peeruserid
              * @description 엔티티 공개 ID (Base62)
@@ -1597,50 +1563,50 @@ export interface components {
              */
             peerprofileimageurl?: string | null;
             /**
-             * Peerdogname
-             * @description 상대 대표 강아지 이름
-             */
-            peerdogname?: string | null;
-            /**
              * Peerdogprofileimageurl
-             * @description 상대 대표 강아지 프로필 이미지 URL
+             * @description 상대 대표견 프로필 이미지 URL
              */
             peerdogprofileimageurl?: string | null;
             /**
+             * Peerdogname
+             * @description 상대 대표견 이름
+             */
+            peerdogname?: string | null;
+            /**
              * Peerdogbreed
-             * @description 상대 대표 강아지 견종
+             * @description 상대 대표견 견종
              */
             peerdogbreed?: string | null;
             /**
              * Peerdoggender
-             * @description 상대 대표 강아지 성별 코드(male/female)
+             * @description 상대 대표견 성별 코드(male/female)
              */
             peerdoggender?: string | null;
             /**
              * Peerdogbirthdate
-             * @description 상대 대표 강아지 생년월일
+             * @description 상대 대표견 생년월일
              */
             peerdogbirthdate?: string | null;
+            /**
+             * Roomid
+             * @description 엔티티 공개 ID (Base62)
+             */
+            roomid: string;
         };
         /** ChatRoomsListData */
         ChatRoomsListData: {
             /** Items */
             items: components["schemas"]["ChatRoomListItem"][];
         };
-        /** CommentAuthorInfo */
-        CommentAuthorInfo: {
+        /** CommentCreateRequest */
+        CommentCreateRequest: {
             /**
-             * Id
-             * @description 엔티티 공개 ID (Base62)
+             * Content
+             * @description 댓글 내용 (1~500자)
              */
-            id: string;
-            /** Nickname */
-            nickname: string;
-            /** Profileimageid */
-            profileimageid?: string | null;
-            /** Profileimageurl */
-            profileimageurl?: string | null;
-            representativedog?: components["schemas"]["RepresentativeDogInfo"] | null;
+            content: string;
+            /** Parentid */
+            parentid?: string | null;
         };
         /** CommentIdData */
         CommentIdData: {
@@ -1659,7 +1625,7 @@ export interface components {
             id: string;
             /** Content */
             content: string;
-            author?: components["schemas"]["CommentAuthorInfo"] | null;
+            author?: components["schemas"]["AuthorInfo"] | null;
             /**
              * Createdat
              * Format: date-time
@@ -1697,15 +1663,13 @@ export interface components {
             /** Replies */
             replies?: components["schemas"]["CommentResponse"][];
         };
-        /** CommentUpsertRequest */
-        CommentUpsertRequest: {
+        /** CommentUpdateRequest */
+        CommentUpdateRequest: {
             /**
              * Content
              * @description 댓글 내용 (1~500자)
              */
             content: string;
-            /** Parentid */
-            parentid?: string | null;
         };
         /**
          * ConfirmSignupUploadRequest
@@ -1739,6 +1703,16 @@ export interface components {
              * @description 클라이언트가 측정한 바이트(선택, S3 HEAD와 교차 검증)
              */
             size?: number | null;
+        };
+        /** CursorPage[ChatMessageItem] */
+        CursorPage_ChatMessageItem_: {
+            /** Items */
+            items?: components["schemas"]["ChatMessageItem"][];
+            /**
+             * Hasmore
+             * @default false
+             */
+            hasmore: boolean;
         };
         /** CursorPage[CommentResponse] */
         CursorPage_CommentResponse_: {
@@ -3131,60 +3105,6 @@ export interface operations {
             };
         };
     };
-    get_trending_hashtags_v1_posts_trending_hashtags_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_list_TrendingHashtagResponse__"];
-                };
-            };
-        };
-    };
-    get_trending_posts_v1_posts_trending_get: {
-        parameters: {
-            query?: {
-                /** @description 인기글 최대 개수 (최대 10) */
-                limit?: number;
-                /** @description 카테고리 ID 필터 */
-                category_id?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_list_TrendingPostResponse__"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_posts_v1_posts_get: {
         parameters: {
             query?: {
@@ -3254,6 +3174,60 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trending_posts_v1_posts_trending_get: {
+        parameters: {
+            query?: {
+                /** @description 인기글 최대 개수 (최대 10) */
+                limit?: number;
+                /** @description 카테고리 ID 필터 */
+                category_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_TrendingPostResponse__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trending_hashtags_v1_posts_trending_hashtags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_TrendingHashtagResponse__"];
                 };
             };
         };
@@ -3409,7 +3383,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CommentUpsertRequest"];
+                "application/json": components["schemas"]["CommentCreateRequest"];
             };
         };
         responses: {
@@ -3481,7 +3455,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CommentUpsertRequest"];
+                "application/json": components["schemas"]["CommentUpdateRequest"];
             };
         };
         responses: {
@@ -4040,7 +4014,7 @@ export interface operations {
             };
         };
     };
-    get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__get: {
+    get_or_create_direct_room_v1_chat_rooms_direct__peer_user_id__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4154,7 +4128,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_ChatRoomMarkedReadData_"];
+                    "application/json": components["schemas"]["ApiResponse_NoneType_"];
                 };
             };
             /** @description Validation Error */
@@ -4171,7 +4145,7 @@ export interface operations {
     list_room_messages_v1_chat_rooms__room_id__messages_get: {
         parameters: {
             query?: {
-                /** @description 이전 응답의 next_cursor (더 과거 메시지) */
+                /** @description 무한 스크롤: 직전 응답의 마지막 메시지 id(공개 ID). 미지정 시 최신부터. */
                 cursor?: string | null;
                 /** @description 한 번에 가져올 최대 개수 */
                 limit?: number;
@@ -4191,7 +4165,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_ChatMessagesPageData_"];
+                    "application/json": components["schemas"]["ApiResponse_CursorPage_ChatMessageItem__"];
                 };
             };
             /** @description Validation Error */

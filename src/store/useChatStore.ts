@@ -15,6 +15,16 @@ export function normalizeChatMessage(raw: Record<string, unknown>): ChatMessageR
   };
 }
 
+/** DESC 페이지에서 다음(더 과거) 커서 파생 — hasMore면 마지막 item id (posts 목록과 동형). */
+function nextCursorFromDescPage(items: unknown[], hasMore: boolean): string | null {
+  if (!hasMore || items.length === 0) return null;
+  const last = items[items.length - 1];
+  const id =
+    last != null && typeof last === 'object' ? (last as Record<string, unknown>).id : null;
+  const s = id != null ? String(id) : '';
+  return s.length > 0 ? s : null;
+}
+
 function dedupeById(list: ChatMessageRow[]): ChatMessageRow[] {
   const seen = new Set<string>();
   const out: ChatMessageRow[] = [];
@@ -29,6 +39,7 @@ function dedupeById(list: ChatMessageRow[]): ChatMessageRow[] {
 export interface ChatState {
   /** roomId → 시간순 오름차순 메시지 */
   messagesByRoom: Record<string, ChatMessageRow[]>;
+  /** 다음(더 과거) 페이지 커서 — 응답 {items, hasMore}에서 마지막 item id로 파생. null=끝. */
   nextCursorByRoom: Record<string, string | null>;
   loadingOlderByRoom: Record<string, boolean>;
   loadingInitialByRoom: Record<string, boolean>;
@@ -135,12 +146,11 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
     try {
       const res = (await api.get(
         `/chat/rooms/${encodeURIComponent(roomId)}/messages?limit=${limit}`,
-      )) as ApiResponse<{ items?: unknown[]; nextcursor?: string | null; nextCursor?: string | null }>;
+      )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean; hasmore?: boolean }>;
       const data = res?.data;
       const items = Array.isArray(data?.items) ? data.items : [];
-      const nextRaw = data?.nextCursor ?? data?.nextcursor;
-      const nextCursor = nextRaw != null && String(nextRaw).length > 0 ? String(nextRaw) : null;
-      get().replaceWithInitialPage(roomId, items, nextCursor);
+      const hasMore = Boolean(data?.hasMore ?? data?.hasmore);
+      get().replaceWithInitialPage(roomId, items, nextCursorFromDescPage(items, hasMore));
     } finally {
       set((s) => ({
         loadingInitialByRoom: { ...s.loadingInitialByRoom, [roomId]: false },
@@ -159,14 +169,13 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
       const q = new URLSearchParams({ limit: String(limit), cursor: cursor });
       const res = (await api.get(
         `/chat/rooms/${encodeURIComponent(roomId)}/messages?${q.toString()}`,
-      )) as ApiResponse<{ items?: unknown[]; nextcursor?: string | null; nextCursor?: string | null }>;
+      )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean; hasmore?: boolean }>;
       const data = res?.data;
       const items = Array.isArray(data?.items) ? data.items : [];
-      const nextRaw = data?.nextCursor ?? data?.nextcursor;
-      const nextCursor = nextRaw != null && String(nextRaw).length > 0 ? String(nextRaw) : null;
+      const hasMore = Boolean(data?.hasMore ?? data?.hasmore);
       get().prependMessages(roomId, items);
       set((s) => ({
-        nextCursorByRoom: { ...s.nextCursorByRoom, [roomId]: nextCursor },
+        nextCursorByRoom: { ...s.nextCursorByRoom, [roomId]: nextCursorFromDescPage(items, hasMore) },
       }));
     } finally {
       set((s) => ({

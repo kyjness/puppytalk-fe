@@ -20,9 +20,10 @@ export function useNavigateToDirectChat() {
       if (!peer) return false;
       setBusy(true);
       try {
-        const body = await api.get<{
+        // 방이 없으면 생성하는(상태 변경) 호출이라 BE 계약이 POST.
+        const body = await api.post<{
           data?: { roomId?: string; roomid?: string; room_id?: string };
-        }>(`/chat/rooms/direct/${encodeURIComponent(peer)}`);
+        }>(`/chat/rooms/direct/${encodeURIComponent(peer)}`, {});
         const inner = body?.data;
         const raw = inner?.roomId ?? inner?.roomid ?? inner?.room_id;
         const roomIdStr = raw != null && String(raw).trim() ? String(raw).trim() : '';

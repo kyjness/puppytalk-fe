@@ -34,7 +34,7 @@ export interface ChatMessageRow {
 }
 
 export type ChatMessageItemSchema = Schemas["ChatMessageItem"];
-export type ChatMessagesPageDataSchema = Schemas["ChatMessagesPageData"];
+export type ChatMessagesPageSchema = Schemas["CursorPage_ChatMessageItem_"];
 
 /** 기존 이미지 1건 (서버 FileInfo에서 매핑; UI는 imageId·fileUrl만 사용) */
 export interface ExistingImageItem {
