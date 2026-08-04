@@ -1,13 +1,17 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder (Node.js 환경에서 의존성 설치 및 빌드)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+# 버전은 .nvmrc·package.json engines와 함께 움직인다 — jsdom(테스트 환경)이 Node 24를 요구한다.
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# 패키지 설치를 위해 package.json과 package-lock.json 먼저 복사 (캐시 최적화)
-COPY package*.json ./
-RUN npm ci
+# 패키지 매니저는 pnpm이다(pnpm-lock.yaml). packageManager 필드가 버전을 고정한다.
+RUN corepack enable
+
+# 락파일 먼저 복사해 의존성 레이어를 캐시한다.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # 소스 코드 전체 복사
 COPY . .
@@ -18,7 +22,7 @@ ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # 프로덕션 빌드 (dist 폴더 생성)
-RUN npm run build
+RUN pnpm build
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime (Nginx 환경에서 정적 파일 서빙)
