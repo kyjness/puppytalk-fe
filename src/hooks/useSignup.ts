@@ -1,7 +1,7 @@
 // 회원가입 페이지 로직: 폼 상태, 유효성 검사, 프로필 이미지 업로드, POST /auth/signup.
 import { useState, useRef, useEffect, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiPost } from '../api/typed.js';
 import { uploadImageFile, PRESIGNED_ALLOWED_IMAGE_TYPES } from '../api/media.js';
 import {
   getApiErrorMessage,
@@ -181,7 +181,7 @@ export function useSignup() {
           payload.signupToken = signupToken;
         }
 
-        await api.post('/auth/signup', payload);
+        await apiPost('/v1/auth/signup', { body: payload });
         alert('회원가입이 완료되었습니다! 로그인해주세요.');
         navigate('/login', { replace: true });
       } catch (err) {

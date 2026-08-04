@@ -1,6 +1,6 @@
 // 게시글 이미지 상태: 기존/신규 목록, 추가·삭제·업로드, Object URL revoke.
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { api } from '../api/client.js';
+import { apiDelete } from '../api/typed.js';
 import { uploadImageFile } from '../api/media.js';
 import { revokeObjectUrlSafely } from '../utils/index.js';
 import type { ExistingImageItem, NewImageItem } from '../api/api-types.js';
@@ -86,7 +86,9 @@ export function usePostImages(
       const entry = prev[index];
       if (!entry) return prev;
       if (entry.imageId != null) {
-        api.delete(`/media/images/${entry.imageId}`).catch(() => {});
+        apiDelete('/v1/media/images/{image_id}', {
+          path: { image_id: entry.imageId },
+        }).catch(() => {});
       }
       revokeObjectUrlSafely(entry.objectUrl);
       return prev.filter((_, i) => i !== index);

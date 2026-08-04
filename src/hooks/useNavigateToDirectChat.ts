@@ -1,7 +1,7 @@
 // 상대 공개 ID로 1:1 방 조회·생성 후 플로팅 채팅창 오픈.
 import { useCallback, useState } from 'react';
 
-import { api } from '../api/client.js';
+import { apiPost } from '../api/typed.js';
 import { ApiError } from '../api/errors.js';
 import { getApiErrorMessage, getClientErrorCode } from '../utils/index.js';
 import { useChatUiStore } from '../store/useChatUiStore';
@@ -21,11 +21,11 @@ export function useNavigateToDirectChat() {
       setBusy(true);
       try {
         // 방이 없으면 생성하는(상태 변경) 호출이라 BE 계약이 POST.
-        const body = await api.post<{
-          data?: { roomId?: string; roomid?: string; room_id?: string };
-        }>(`/chat/rooms/direct/${encodeURIComponent(peer)}`, {});
+        const body = await apiPost('/v1/chat/rooms/direct/{peer_user_id}', {
+          path: { peer_user_id: peer },
+        });
         const inner = body?.data;
-        const raw = inner?.roomId ?? inner?.roomid ?? inner?.room_id;
+        const raw = inner?.roomId;
         const roomIdStr = raw != null && String(raw).trim() ? String(raw).trim() : '';
         const invalid =
           !roomIdStr ||

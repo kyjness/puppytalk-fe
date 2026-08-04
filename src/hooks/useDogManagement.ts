@@ -1,6 +1,6 @@
 // 반려견 관리 로직: user.dogs 로드, 로컬 state, PATCH /users/me에 dogs만 반영.
 import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
-import { api } from '../api/client.js';
+import { apiGet, apiPatch } from '../api/typed.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage, unwrapApiData } from '../utils/index.js';
 
@@ -18,7 +18,8 @@ interface DogPayloadRow {
   id?: string;
   name: string;
   breed: string;
-  gender: string;
+  /** 서버 enum과 일치해야 한다 — string으로 두면 잘못된 값이 런타임 422로만 드러난다. */
+  gender: 'male' | 'female';
   birthDate: string;
   isRepresentative: boolean;
   profileImageId?: string;
@@ -101,8 +102,7 @@ export function useDogManagement() {
     if (hasDogs) return;
 
     let cancelled = false;
-    api
-      .get('/users/me')
+    apiGet('/v1/users/me', {})
       .then((res) => {
         if (cancelled) return;
         const payload = unwrapApiData<UpdatedUser>(res);
@@ -192,10 +192,10 @@ export function useDogManagement() {
           nickname: (user?.nickname ?? '').trim(),
           dogs: dogsPayload,
         };
-        await api.patch('/users/me', payload);
+        await apiPatch('/v1/users/me', { body: payload });
         let updated: UpdatedUser | null = null;
         try {
-          updated = unwrapApiData<UpdatedUser>(await api.get('/users/me'));
+          updated = unwrapApiData<UpdatedUser>(await apiGet('/v1/users/me', {}));
         } catch (_) {
           /* ignore */
         }

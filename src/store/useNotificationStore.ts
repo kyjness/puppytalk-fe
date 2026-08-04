@@ -1,6 +1,6 @@
 // 알림 전역 상태: 목록·미읽음 수·토스트·SSE 중복 방지용 seen 집합.
 import { create } from 'zustand';
-import { api } from '../api/client.js';
+import { apiGet, apiPatch } from '../api/typed.js';
 import {
   parseNotificationListResponse,
   parseSseRealtimePayload,
@@ -99,7 +99,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
   fetchNotifications: async (size = 30) => {
     set({ listLoading: true, listError: '' });
     try {
-      const res = await api.get(`/notifications?size=${size}`);
+      const res = await apiGet('/v1/notifications', { query: { size } });
       const { items, hasMore } = parseNotificationListResponse(res);
       set({
         items,
@@ -164,7 +164,7 @@ export const useNotificationStore = create<NotificationState & NotificationActio
     }
 
     try {
-      await api.patch('/notifications/read', { ids });
+      await apiPatch('/v1/notifications/read', { body: { ids } });
     } catch (e) {
       set({ items: prevItems, unreadCount: prevUnread });
       throw e;

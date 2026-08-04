@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiGet } from '../api/typed.js';
 
 interface HashtagItem {
   name: string;
@@ -36,7 +36,7 @@ export function TrendingHashtags() {
     (async () => {
       try {
         setLoading(true);
-        const res = await api.get('/posts/trending-hashtags');
+        const res = await apiGet('/v1/posts/trending-hashtags', {});
         const items = unwrapApiList(res)
           .slice(0, 10)
           .map((raw) => {

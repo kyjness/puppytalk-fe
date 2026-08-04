@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiPost } from '../api/typed.js';
 import { usePostImages } from './usePostImages.js';
 import { getApiErrorMessage, validatePostTitle, validatePostContent } from '../utils/index.js';
 import { parseHashtagsInput } from '../utils/postMeta.js';
@@ -91,12 +91,14 @@ export function useNewPost() {
         const uploaded = await uploadNewImages();
         const imageIds = uploaded.map((x) => x.imageId).filter((id): id is string => id != null);
         const hashtags = parseHashtagsInput(hashtagsInput);
-        const res = await api.post<{ data?: { id?: string } }>('/posts', {
-          title: titleTrim,
-          content: contentTrim,
-          imageIds: imageIds.length ? imageIds : undefined,
-          categoryId,
-          hashtags: hashtags.length ? hashtags : undefined,
+        const res = await apiPost('/v1/posts', {
+          body: {
+            title: titleTrim,
+            content: contentTrim,
+            imageIds: imageIds.length ? imageIds : undefined,
+            categoryId,
+            hashtags: hashtags.length ? hashtags : undefined,
+          },
         });
         const postId = res?.data?.id;
         alert('게시글이 작성되었습니다!');

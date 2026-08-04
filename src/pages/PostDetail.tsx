@@ -95,7 +95,7 @@ export function PostDetail() {
   }, [user, postId, redirectToLoginForReport, setModalState]);
 
   const openCommentReport = useCallback(
-    (targetType: string, targetId: string) => {
+    (targetType: 'COMMENT', targetId: string) => {
       if (!user) {
         redirectToLoginForReport();
         return;

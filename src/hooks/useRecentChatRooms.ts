@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
-import { api } from '../api/client.js';
+import { apiGet } from '../api/typed.js';
 
 export interface RecentChatRoom {
   roomId: string;
@@ -62,9 +62,7 @@ async function fetchRecentRooms(limit: number): Promise<RecentChatRoom[]> {
   // 404/스키마 불일치에도 UI가 깨지지 않도록 보수적으로 파싱합니다.
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(50, Math.floor(limit))) : 20;
   try {
-    const body = await api.get<{ data?: unknown }>(
-      `/chat/rooms?limit=${encodeURIComponent(String(safeLimit))}`
-    );
+    const body = await apiGet('/v1/chat/rooms', { query: { limit: safeLimit } });
     const data: unknown = body?.data ?? body;
     const dataObj = data && typeof data === 'object' ? (data as { items?: unknown }) : null;
     const items = Array.isArray(dataObj?.items)

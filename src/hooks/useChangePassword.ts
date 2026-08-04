@@ -1,7 +1,7 @@
 // 비밀번호 변경 페이지 로직: 폼 상태, 유효성 검사, PATCH /users/me/password.
 import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiPatch } from '../api/typed.js';
 import {
   getApiErrorMessage,
   getClientErrorCode,
@@ -87,9 +87,8 @@ export function useChangePassword() {
 
       setSubmitting(true);
       try {
-        await api.patch('/users/me/password', {
-          currentPassword: currentTrim,
-          newPassword: newPw,
+        await apiPatch('/v1/users/me/password', {
+          body: { currentPassword: currentTrim, newPassword: newPw },
         });
         alert('비밀번호가 변경되었습니다!');
         navigate('/posts');

@@ -7,7 +7,7 @@ import type {
   NewImageItem,
   PostResponse,
 } from '../api/api-types.js';
-import { api } from '../api/client.js';
+import { apiDelete, apiGet, apiPatch } from '../api/typed.js';
 import { uploadImageFile } from '../api/media.js';
 import {
   getApiErrorMessage,
@@ -84,7 +84,9 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
   loadPost: async (postId: string) => {
     set({ loading: true, formError: '', titleError: '', contentError: '', postId });
     try {
-      const res = await api.get(`/posts/${postId}`) as ApiResponse<PostResponse>;
+      const res = (await apiGet('/v1/posts/{post_id}', {
+        path: { post_id: postId },
+      })) as ApiResponse<PostResponse>;
       const data = res.data ?? (res as unknown as PostResponse);
       const raw = data as PostResponse & Record<string, unknown>;
       const cidRaw = raw.categoryId ?? raw.categoryid;
@@ -168,7 +170,7 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
     if (!entry) return;
     if (entry.imageId != null) {
       try {
-        await api.delete(`/media/images/${entry.imageId}`);
+        await apiDelete('/v1/media/images/{image_id}', { path: { image_id: entry.imageId } });
       } catch {
         /* ignore delete failure */
       }
@@ -220,7 +222,7 @@ export const usePostStore = create<PostEditState & PostEditActions>((set, get) =
       if (postVersion != null) {
         body.version = postVersion;
       }
-      await api.patch(`/posts/${postId}`, body);
+      await apiPatch('/v1/posts/{post_id}', { path: { post_id: postId }, body });
       onSuccess();
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string; status?: number };

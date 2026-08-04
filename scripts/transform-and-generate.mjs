@@ -20,7 +20,10 @@ const outDir = path.join(root, 'src', 'api', 'generated');
 fs.mkdirSync(outDir, { recursive: true });
 const outFile = path.join(outDir, 'schema.d.ts');
 
-execSync(`npx openapi-typescript "${specPath}" -o "${outFile}"`, {
+// --default-non-nullable=false: 기본값이 있는 필드를 필수로 만들지 않는다.
+// 응답에는 항상 채워져 오지만 **요청 본문에서는 생략 가능**하므로, 켜두면 호출부가
+// 서버 기본값을 매번 손으로 넘기게 된다(예: UpdateUserRequest.clearProfileImage).
+execSync(`npx openapi-typescript "${specPath}" --default-non-nullable false -o "${outFile}"`, {
   cwd: root,
   stdio: 'inherit',
 });

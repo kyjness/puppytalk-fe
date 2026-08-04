@@ -335,13 +335,6 @@ export const api = {
     return toData(response);
   },
 
-  async postFormData<T = unknown>(endpoint: string, formData: FormData): Promise<T> {
-    const response = await instance.post<T>(endpoint, formData, {
-      headers: { 'Content-Type': undefined },
-    });
-    return toData(response);
-  },
-
   async patch<T = unknown>(endpoint: string, data?: unknown): Promise<T> {
     const response = await instance.patch<T>(endpoint, data);
     return toData(response);

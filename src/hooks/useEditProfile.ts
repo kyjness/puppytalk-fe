@@ -9,7 +9,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiDelete, apiGet, apiPatch } from '../api/typed.js';
 import { uploadImageFile } from '../api/media.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { DEFAULT_PROFILE_IMAGE } from '../config.js';
@@ -35,7 +35,8 @@ interface DogPayloadRow {
   id?: string;
   name: string;
   breed: string;
-  gender: string;
+  /** 서버 enum과 일치해야 한다 — string으로 두면 잘못된 값이 런타임 422로만 드러난다. */
+  gender: 'male' | 'female';
   birthDate: string;
   isRepresentative: boolean;
   profileImageId?: string;
@@ -213,12 +214,12 @@ export function useEditProfile() {
         }
         payload.dogs = buildDogsPayload(user?.dogs);
 
-        const patchRes = await api.patch('/users/me', payload);
+        const patchRes = await apiPatch('/v1/users/me', { body: payload });
         // PATCH 본문을 우선 반영(GET 실패·리플리카 지연에도 UI 일치). null 프로필 URL은 ?? 로 이전값 복구하면 안 됨.
         let updated = unwrapApiData<UpdatedUser>(patchRes);
         if (!updated) {
           try {
-            updated = unwrapApiData<UpdatedUser>(await api.get('/users/me'));
+            updated = unwrapApiData<UpdatedUser>(await apiGet('/v1/users/me', {}));
           } catch (_) {
             /* ignore */
           }
@@ -271,7 +272,7 @@ export function useEditProfile() {
 
   const handleDeleteAccount = useCallback(async () => {
     try {
-      await api.delete('/users/me');
+      await apiDelete('/v1/users/me', {});
       setUser(null);
       setDeleteModalOpen(false);
       alert('회원 탈퇴가 완료되었습니다.');

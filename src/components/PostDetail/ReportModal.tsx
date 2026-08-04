@@ -1,25 +1,30 @@
 // 신고 사유 선택 모달. 제출 시 POST /reports 호출.
 import { useState, type FormEvent } from 'react';
-import { api } from '../../api/client.js';
+import { apiPost } from '../../api/typed.js';
+import type { Schemas } from '../../api/api-types.js';
+
+type ReportReason = Schemas['ReportReason'];
+type ReportTargetType = Schemas['TargetType'];
 import { getApiErrorMessage, getClientErrorCode } from '../../utils/index.js';
 
+// 서버 enum과 1:1이어야 한다 — as const로 좁혀두면 어긋나는 순간 컴파일에서 걸린다.
 const REPORT_REASONS = [
   { value: '스팸', label: '스팸' },
   { value: '욕설', label: '욕설' },
   { value: '부적절한 콘텐츠', label: '부적절한 콘텐츠' },
   { value: '기타', label: '기타' },
-];
+] as const satisfies readonly { value: ReportReason; label: string }[];
 
 interface ReportModalProps {
   open: boolean;
-  targetType: string | null;
+  targetType: ReportTargetType | null;
   targetId: string | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
 export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: ReportModalProps) {
-  const [reason, setReason] = useState(REPORT_REASONS[0].value);
+  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0].value);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,10 +34,8 @@ export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: 
     setError(null);
     setSubmitting(true);
     try {
-      await api.post('/reports', {
-        targetType,
-        targetId,
-        reason,
+      await apiPost('/v1/reports', {
+        body: { targetType, targetId, reason },
       });
       onSuccess?.();
       onClose();
@@ -63,7 +66,7 @@ export function ReportModal({ open, targetType, targetId, onClose, onSuccess }: 
                     name="report-reason"
                     value={r.value}
                     checked={reason === r.value}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={() => setReason(r.value)}
                   />
                   <span>{r.label}</span>
                 </label>

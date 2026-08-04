@@ -1,6 +1,6 @@
 // S3 Presigned POST 이미지 업로드: presign(axios) → S3(fetch) → confirm(axios).
 // S3 단계에는 절대 api/axios 인스턴스를 쓰지 않는다(Bearer 헤더 시 400).
-import { api } from './client.js';
+import { apiPost } from './typed.js';
 import { ApiError } from './errors.js';
 import { getImageUploadData } from '../utils/index.js';
 
@@ -53,25 +53,18 @@ export function validateImageFileForPresignedUpload(file: File | null | undefine
   }
 }
 
-/** purpose에 따라 presign·confirm 경로 분기(signup은 JWT 불필요). */
-function presignConfirmPaths(purpose: ImageUploadPurpose): { presign: string; confirm: string } {
-  if (purpose === 'signup') {
-    return {
-      presign: '/media/images/signup/presign',
-      confirm: '/media/images/signup/confirm',
-    };
-  }
-  return {
-    presign: '/media/images/presign',
-    confirm: '/media/images/confirm',
-  };
-}
-
+/**
+ * presign 요청. 경로를 문자열 변수로 넘기지 않고 purpose로 분기한다 —
+ * 동적 경로 문자열은 타입 검사를 통째로 무력화한다(signup은 JWT 불필요한 별도 경로).
+ */
 async function requestPresign(
-  presignPath: string,
+  purpose: ImageUploadPurpose,
   body: { filename: string; contentType: string }
 ): Promise<PresignData> {
-  const res = await api.post(presignPath, body);
+  const res =
+    purpose === 'signup'
+      ? await apiPost('/v1/media/images/signup/presign', { body })
+      : await apiPost('/v1/media/images/presign', { body });
   return unwrapPresignResponse(res);
 }
 
@@ -118,16 +111,18 @@ export async function postFileToS3(
 }
 
 async function requestConfirm(
-  confirmPath: string,
   purpose: ImageUploadPurpose,
   fileKey: string,
   file: File
 ): Promise<ImageUploadResult> {
-  const body =
+  const res =
     purpose === 'signup'
-      ? { fileKey, size: file.size }
-      : { fileKey, purpose, size: file.size };
-  const res = await api.post(confirmPath, body);
+      ? await apiPost('/v1/media/images/signup/confirm', {
+          body: { fileKey, size: file.size },
+        })
+      : await apiPost('/v1/media/images/confirm', {
+          body: { fileKey, purpose, size: file.size },
+        });
   return getImageUploadData(res);
 }
 
@@ -138,13 +133,12 @@ export async function uploadImageFile(
 ): Promise<ImageUploadResult> {
   validateImageFileForPresignedUpload(file);
 
-  const { presign, confirm } = presignConfirmPaths(purpose);
-  const { url, fields, fileKey } = await requestPresign(presign, {
+  const { url, fields, fileKey } = await requestPresign(purpose, {
     filename: file.name,
     contentType: file.type,
   });
 
   await postFileToS3(url, fields, file);
 
-  return requestConfirm(confirm, purpose, fileKey, file);
+  return requestConfirm(purpose, fileKey, file);
 }

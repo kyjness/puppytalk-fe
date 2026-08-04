@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { api } from '../api/client.js';
+import { apiGet } from '../api/typed.js';
 
 export interface ChatRoomPeerInfo {
   roomId: string;
@@ -41,7 +41,7 @@ function normalize(raw: Record<string, unknown>): ChatRoomPeerInfo | null {
 }
 
 async function fetchPeerInfo(roomId: string): Promise<ChatRoomPeerInfo | null> {
-  const body = await api.get<{ data?: unknown }>(`/chat/rooms/${encodeURIComponent(roomId)}`);
+  const body = await apiGet('/v1/chat/rooms/{room_id}', { path: { room_id: roomId } });
   const data = body?.data ?? body;
   if (!data || typeof data !== 'object') return null;
   return normalize(data as Record<string, unknown>);

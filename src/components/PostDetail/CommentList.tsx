@@ -41,7 +41,7 @@ interface CommentItemProps {
   onCommentLike: (commentId: string) => void;
   onDeleteOpen: (commentId: string) => void;
   onBlockUser?: (authorId: string) => void;
-  onReportOpen?: (targetType: string, targetId: string) => void;
+  onReportOpen?: (targetType: 'COMMENT', targetId: string) => void;
   replyToCommentId: string | null;
   setReplyToCommentId: Dispatch<SetStateAction<string | null>>;
   replyForm: ReplyFormState;
@@ -63,7 +63,7 @@ interface CommentListProps {
   onCommentLike?: (commentId: string) => void;
   onDeleteOpen?: (commentId: string) => void;
   onBlockUser?: (authorId: string) => void;
-  onReportOpen?: (targetType: string, targetId: string) => void;
+  onReportOpen?: (targetType: 'COMMENT', targetId: string) => void;
   hasMoreComments: boolean;
   loadingMoreComments: boolean;
   onLoadMoreComments: () => void;
@@ -635,7 +635,7 @@ export function CommentList({
     [onBlockUser]
   );
   const handleReportOpen = useCallback(
-    (targetType: string, targetId: string) => onReportOpen?.(targetType, targetId),
+    (targetType: 'COMMENT', targetId: string) => onReportOpen?.(targetType, targetId),
     [onReportOpen]
   );
   const handleReplySubmit = useCallback(

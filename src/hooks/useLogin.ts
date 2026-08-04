@@ -1,7 +1,7 @@
 // 로그인 페이지 로직: 폼 상태, 유효성 검사, POST /auth/login, setUser·리다이렉트.
 import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiGet, apiPost } from '../api/typed.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage, isValidEmail, unwrapApiData } from '../utils/index.js';
 
@@ -67,10 +67,9 @@ export function useLogin() {
 
       setSubmitting(true);
       try {
-        const result = await api.post<{ data?: LoginUserData }>('/auth/login', {
-          email: emailTrim,
-          password: passwordVal,
-        });
+        const result = (await apiPost('/v1/auth/login', {
+          body: { email: emailTrim, password: passwordVal },
+        })) as { data?: LoginUserData };
         const data = unwrapApiData<LoginUserData>(result) ?? result?.data;
         if (data) {
           const accessToken = data.accessToken ?? result?.data?.accessToken;
@@ -85,7 +84,7 @@ export function useLogin() {
           let me: LoginUserData | null = null;
           for (let attempt = 0; attempt < 3; attempt++) {
             try {
-              const meRes = await api.get('/users/me');
+              const meRes = await apiGet('/v1/users/me', {});
               me = unwrapApiData<LoginUserData>(meRes);
               if (me) break;
             } catch (_) {

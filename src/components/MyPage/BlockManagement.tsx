@@ -1,7 +1,7 @@
 // 차단 유저 관리: GET /users/me/blocks(커서 페이지네이션) 목록 표시,
 // 차단 해제 시 POST /users/{id}/block 토글.
 import { useState, useEffect, useCallback, type SyntheticEvent } from 'react';
-import { api } from '../../api/client.js';
+import { apiGet, apiPost } from '../../api/typed.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 import {
   getApiErrorMessage,
@@ -31,14 +31,12 @@ export function BlockManagement() {
     else setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams({ size: String(PAGE_SIZE) });
-      if (after) params.set('cursor', after);
-      const res = await api.get<{ data?: { items?: unknown; hasMore?: boolean } }>(
-        `/users/me/blocks?${params.toString()}`
-      );
-      const payload = res?.data ?? {};
-      const items = Array.isArray(payload.items) ? (payload.items as BlockedUser[]) : [];
-      const next = nextCursorFromPage(items, Boolean(payload.hasMore));
+      const res = await apiGet('/v1/users/me/blocks', {
+        query: { size: PAGE_SIZE, cursor: after },
+      });
+      const payload = res?.data;
+      const items = Array.isArray(payload?.items) ? (payload.items as BlockedUser[]) : [];
+      const next = nextCursorFromPage(items, Boolean(payload?.hasMore));
       setList((prev) => {
         if (!isAppend) return items;
         const seen = new Set(prev.map((u) => u.id));
@@ -63,7 +61,7 @@ export function BlockManagement() {
     const nextList = prevList.filter((item) => item.id !== userId);
     setList(nextList);
     try {
-      await api.post(`/users/${userId}/block`);
+      await apiPost('/v1/users/{target_user_id}/block', { path: { target_user_id: userId } });
     } catch (err) {
       const msg = getApiErrorMessage(getClientErrorCode(err), '차단 해제에 실패했습니다.');
       alert(msg);

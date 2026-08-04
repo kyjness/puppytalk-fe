@@ -2,7 +2,8 @@
 import { useEffect, useRef } from 'react';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import { BASE_URL } from '../config.js';
-import { api, getStoredAccessToken } from '../api/client.js';
+import { getStoredAccessToken } from '../api/client.js';
+import { apiGet } from '../api/typed.js';
 import { useNotificationStore } from '../store/useNotificationStore.js';
 
 const STREAM_PATH = '/notifications/stream';
@@ -83,7 +84,7 @@ export function useNotificationStream({ enabled }: { enabled: boolean }): void {
       if (failCount >= 2) {
         try {
           // 인증 생존 확인용 probe — 본문은 쓰지 않는다. 서버가 무시하는 page는 보내지 않는다.
-          await api.get('/notifications?size=1');
+          await apiGet('/v1/notifications', { query: { size: 1 } });
         } catch (err) {
           const status = (err as { status?: number })?.status;
           if (status === 401) {

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import { api } from '../api/client.js';
+import { apiDelete, apiGet, apiPatch } from '../api/typed.js';
 import { formatDateTime, getApiErrorMessage } from '../utils/index.js';
 
 const PAGE_SIZE = 20;
@@ -87,9 +87,11 @@ export function AdminDashboard() {
   const reportedQuery = useQuery({
     queryKey: ['admin', 'reported-posts', page],
     queryFn: async () => {
-      const res = await api.get<{ data?: { items?: unknown; total?: unknown } }>(
-        `/admin/reported-posts?page=${page}&size=${PAGE_SIZE}`
-      );
+      // 관리자 피드는 의도적으로 offset 기반이다(ADR 0012) — page가 실제 파라미터임을
+      // 타입이 확인해준다.
+      const res = await apiGet('/v1/admin/reported-posts', {
+        query: { page, size: PAGE_SIZE },
+      });
       const payload = res?.data ?? {};
       return {
         items: Array.isArray(payload.items) ? (payload.items as ReportedRow[]) : [],
@@ -124,12 +126,13 @@ export function AdminDashboard() {
     if (!window.confirm('이 글의 블라인드를 해제(복구)하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === postId ? { ...r, isBlinded: false } : r))),
-      () => api.patch(`/admin/posts/${postId}/unblind`),
+      () => apiPatch('/v1/admin/posts/{post_id}/unblind', { path: { post_id: postId } }),
       '복구 처리에 실패했습니다.'
     );
   };
 
   const handleSuspendUser = async (userId?: string) => {
+    if (!userId) return; // 작성자 탈퇴 등으로 id가 없을 수 있다 — URL에 undefined를 넣지 않는다.
     if (!window.confirm('해당 유저를 정지하시겠습니까? 정지된 유저는 로그인 및 활동이 제한됩니다.')) return;
     await optimisticRollback(
       () =>
@@ -144,12 +147,13 @@ export function AdminDashboard() {
               : r
           )
         ),
-      () => api.patch(`/admin/users/${userId}/suspend`),
+      () => apiPatch('/v1/admin/users/{user_id}/suspend', { path: { user_id: userId } }),
       '유저 정지에 실패했습니다.'
     );
   };
 
   const handleActivateUser = async (userId?: string) => {
+    if (!userId) return;
     if (!window.confirm('해당 유저의 정지를 해제하시겠습니까?')) return;
     await optimisticRollback(
       () =>
@@ -164,7 +168,7 @@ export function AdminDashboard() {
               : r
           )
         ),
-      () => api.patch(`/admin/users/${userId}/activate`),
+      () => apiPatch('/v1/admin/users/{user_id}/activate', { path: { user_id: userId } }),
       '정지 해제에 실패했습니다.'
     );
   };
@@ -173,7 +177,7 @@ export function AdminDashboard() {
     if (!window.confirm('이 글을 블라인드 처리하시겠습니까? 게시글이 비공개 처리됩니다.')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === postId ? { ...r, isBlinded: true } : r))),
-      () => api.patch(`/admin/posts/${postId}/blind`),
+      () => apiPatch('/v1/admin/posts/{post_id}/blind', { path: { post_id: postId } }),
       '블라인드 처리에 실패했습니다.'
     );
   };
@@ -185,7 +189,7 @@ export function AdminDashboard() {
         setList((prev) => prev.filter((r) => !(r.targetType !== 'COMMENT' && r.id === postId)));
         setTotal((t) => Math.max(0, (Number(t) || 0) - 1));
       },
-      () => api.delete(`/admin/posts/${postId}`),
+      () => apiDelete('/v1/admin/posts/{post_id}', { path: { post_id: postId } }),
       '글 삭제에 실패했습니다.'
     );
   };
@@ -197,7 +201,7 @@ export function AdminDashboard() {
         setList((prev) => prev.filter((r) => !(r.targetType !== 'COMMENT' && r.id === postId)));
         setTotal((t) => Math.max(0, (Number(t) || 0) - 1));
       },
-      () => api.patch(`/admin/posts/${postId}/reset-reports`),
+      () => apiPatch('/v1/admin/posts/{post_id}/reset-reports', { path: { post_id: postId } }),
       '신고 무시 처리에 실패했습니다.'
     );
   };
@@ -206,7 +210,7 @@ export function AdminDashboard() {
     if (!window.confirm('이 댓글의 블라인드를 해제하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === commentId ? { ...r, isBlinded: false } : r))),
-      () => api.patch(`/admin/comments/${commentId}/unblind`),
+      () => apiPatch('/v1/admin/comments/{comment_id}/unblind', { path: { comment_id: commentId } }),
       '댓글 블라인드 해제에 실패했습니다.'
     );
   };
@@ -215,7 +219,7 @@ export function AdminDashboard() {
     if (!window.confirm('이 댓글을 블라인드 처리하시겠습니까?')) return;
     await optimisticRollback(
       () => setList((prev) => prev.map((r) => (r.id === commentId ? { ...r, isBlinded: true } : r))),
-      () => api.patch(`/admin/comments/${commentId}/blind`),
+      () => apiPatch('/v1/admin/comments/{comment_id}/blind', { path: { comment_id: commentId } }),
       '댓글 블라인드 처리에 실패했습니다.'
     );
   };
@@ -227,19 +231,25 @@ export function AdminDashboard() {
         setList((prev) => prev.filter((r) => !(r.targetType === 'COMMENT' && r.id === commentId)));
         setTotal((t) => Math.max(0, (Number(t) || 0) - 1));
       },
-      () => api.patch(`/admin/comments/${commentId}/reset-reports`),
+      () => apiPatch('/v1/admin/comments/{comment_id}/reset-reports', {
+        path: { comment_id: commentId },
+      }),
       '댓글 신고 무시 처리에 실패했습니다.'
     );
   };
 
   const handleDeleteComment = async (postId: string | undefined, commentId: string) => {
+    if (!postId) return; // 호스트 글 id가 없으면 삭제 경로를 만들 수 없다.
     if (!window.confirm('이 댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.')) return;
     await optimisticRollback(
       () => {
         setList((prev) => prev.filter((r) => !(r.targetType === 'COMMENT' && r.id === commentId)));
         setTotal((t) => Math.max(0, (Number(t) || 0) - 1));
       },
-      () => api.delete(`/admin/posts/${postId}/comments/${commentId}`),
+      () =>
+        apiDelete('/v1/admin/posts/{post_id}/comments/{comment_id}', {
+          path: { post_id: postId, comment_id: commentId },
+        }),
       '댓글 삭제에 실패했습니다.'
     );
   };

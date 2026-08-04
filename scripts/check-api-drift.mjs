@@ -1,9 +1,9 @@
 /**
- * BE↔FE 페이지네이션 계약 드리프트 검사.
+ * 타입 안전 클라이언트 우회 감시.
  *
- * 왜 필요한가: 같은 형태의 버그를 세 번 잡았다(댓글·차단·알림). 전부 "서버는 커서인데
- * FE는 페이지 번호/총계를 쓴다"였고, 셋 다 각 리포의 diff만 보면 결함이 없어 보인다 —
- * 리포 경계에서 깨지므로 code review로는 잡히지 않는다. 그래서 기계가 본다.
+ * 계약 드리프트(서버는 커서인데 FE는 page/total 사용)는 이제 `src/api/typed.ts`를 통해
+ * **컴파일 단계에서** 막힌다 — 이 검사는 그 그물을 빠져나가는 경로, 즉 raw `api.*`로
+ * 커서 엔드포인트를 직접 부르는 코드를 잡는다. typed.ts를 쓰면 여기에 걸릴 일이 없다.
  *
  * 사용: node scripts/check-api-drift.mjs   (openapi.json이 최신이어야 한다)
  */
@@ -87,27 +87,17 @@ for (const file of files) {
       .join('\n');
     const where = `${rel}:${lineNo}`;
 
-    // 1) 커서 엔드포인트에 page 번호를 보낸다 → 서버가 조용히 무시한다.
+    // raw api.*로 커서 엔드포인트를 부르면 타입 검사를 통째로 우회한다.
+    errors.push(
+      `${where}: ${hit.specPath}를 raw api.get으로 호출한다 — ` +
+        `apiGet(src/api/typed.ts)을 쓸 것. 그래야 page/total 같은 계약 위반이 컴파일에서 걸린다.`
+    );
+    // 우회한 코드가 실제로 드리프트까지 하고 있으면 근거를 함께 보여준다.
     if (/[?&]page=/.test(url)) {
-      errors.push(
-        `${where}: '${url}' — ${hit.specPath}는 커서 기반이라 page를 무시한다. cursor를 쓸 것.`
-      );
+      errors.push(`${where}: '${url}' — 커서 기반 엔드포인트에 page를 보내고 있다.`);
     }
-
-    // 2) 호출 근처에서 total/totalCount를 읽는다 → 서버 응답에 없어 항상 0이 된다.
-    const totalRead = near.match(/\b(?:totalCount|total)\b\s*[,;)}\]=:]/);
-    if (totalRead) {
-      errors.push(
-        `${where}: ${hit.specPath} 응답에서 '${totalRead[0].trim()}'를 읽는다 — ` +
-          `CursorPage에는 total이 없어 항상 0이다. hasMore를 쓸 것.`
-      );
-    }
-
-    // 3) 커서 엔드포인트인데 근처에서 cursor를 쓰지 않는다 → 첫 페이지에 갇혔을 가능성.
-    if (!/cursor/i.test(near)) {
-      warnings.push(
-        `${where}: ${hit.specPath}를 호출하며 cursor를 쓰지 않는다 — 첫 페이지만 보이는지 확인.`
-      );
+    if (/\b(?:totalCount|total)\b\s*[,;)}\]=:]/.test(near)) {
+      errors.push(`${where}: CursorPage 응답에서 total을 읽고 있다 — 항상 0이다.`);
     }
   }
 }
@@ -117,7 +107,7 @@ for (const w of uniq(warnings)) console.warn(`warn  ${w}`);
 for (const e of uniq(errors)) console.error(`ERROR ${e}`);
 
 if (errors.length > 0) {
-  console.error(`\n페이지네이션 계약 드리프트 ${uniq(errors).length}건.`);
+  console.error(`\n타입 안전 클라이언트를 우회한 호출 ${uniq(errors).length}건.`);
   process.exit(1);
 }
-console.log(`OK — 커서 엔드포인트 ${endpoints.length}개, 드리프트 없음.`);
+console.log(`OK — 커서 엔드포인트 ${endpoints.length}개, 모두 타입 안전 클라이언트 경유.`);

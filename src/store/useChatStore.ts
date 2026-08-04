@@ -1,8 +1,8 @@
 // 1:1 DM 메시지 목록(Zustand). 시간순 오름차순(위=과거, 아래=최신)으로 보관.
 import { create } from 'zustand';
 
-import type { ApiResponse, ChatMessageRow } from '../api/api-types.js';
-import { api } from '../api/client.js';
+import type { ChatMessageRow } from '../api/api-types.js';
+import { apiGet } from '../api/typed.js';
 import { nextCursorFromPage } from '../utils/index.js';
 
 export function normalizeChatMessage(raw: Record<string, unknown>): ChatMessageRow {
@@ -22,11 +22,10 @@ async function fetchMessagesPage(
   limit: number,
   cursor?: string,
 ): Promise<{ items: unknown[]; nextCursor: string | null }> {
-  const q = new URLSearchParams({ limit: String(limit) });
-  if (cursor) q.set('cursor', cursor);
-  const res = (await api.get(
-    `/chat/rooms/${encodeURIComponent(roomId)}/messages?${q.toString()}`,
-  )) as ApiResponse<{ items?: unknown[]; hasMore?: boolean }>;
+  const res = await apiGet('/v1/chat/rooms/{room_id}/messages', {
+    path: { room_id: roomId },
+    query: { limit, cursor },
+  });
   const data = res?.data;
   const items = Array.isArray(data?.items) ? data.items : [];
   return { items, nextCursor: nextCursorFromPage(items, Boolean(data?.hasMore)) };

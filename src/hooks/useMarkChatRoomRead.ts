@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import { api } from '../api/client.js';
+import { apiPost } from '../api/typed.js';
 
 export function useMarkChatRoomRead() {
   const queryClient = useQueryClient();
@@ -10,7 +10,7 @@ export function useMarkChatRoomRead() {
       const rid = roomId.trim();
       if (!rid) return;
       try {
-        await api.post(`/chat/rooms/${encodeURIComponent(rid)}/read`, {});
+        await apiPost('/v1/chat/rooms/{room_id}/read', { path: { room_id: rid } });
         await queryClient.invalidateQueries({ queryKey: ['chat', 'recent-rooms'] });
       } catch (e) {
         console.warn('[markChatRoomRead]', e);

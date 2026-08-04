@@ -2,7 +2,8 @@
 import { useState, useCallback, useRef, useMemo, type FormEvent } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../api/typed.js';
+import type { Schemas } from '../api/api-types.js';
 import { DEFAULT_PROFILE_IMAGE } from '../config.js';
 import { useAuth, type AuthUser } from '../context/AuthContext.jsx';
 import {
@@ -135,7 +136,8 @@ interface ModalState {
   postDeleteOpen: boolean;
   commentDeleteId: string | null;
   reportOpen: boolean;
-  reportTargetType: string | null;
+  /** 서버 enum(TargetType)과 일치 — 신고 모달이 그대로 전송한다. */
+  reportTargetType: Schemas['TargetType'] | null;
   reportTargetId: string | null;
 }
 
@@ -299,8 +301,8 @@ async function fetchPostNormalized(
   postId: string,
   user: AuthUser | null
 ): Promise<PostDetailData | null> {
-  const res = await api.get<{ data?: RawPost | null }>(`/posts/${postId}`);
-  const data = res?.data ?? null;
+  const res = await apiGet('/v1/posts/{post_id}', { path: { post_id: postId } });
+  const data = (res?.data ?? null) as RawPost | null;
   if (!data) return null;
 
   let merge: PostEditMerge | null = null;
@@ -335,10 +337,10 @@ async function fetchCommentsPage(
   cursor: string | undefined,
   user: AuthUser | null
 ): Promise<{ comments: CommentNode[]; hasMore: boolean }> {
-  const params = new URLSearchParams({ size: String(COMMENT_PAGE_SIZE) });
-  if (commentSort && commentSort !== 'latest') params.set('sort', commentSort);
-  if (cursor) params.set('cursor', cursor);
-  const res = await api.get(`/posts/${postId}/comments?${params.toString()}`);
+  const res = await apiGet('/v1/posts/{post_id}/comments', {
+    path: { post_id: postId },
+    query: { size: COMMENT_PAGE_SIZE, sort: commentSort, cursor },
+  });
   const { items: arr, hasMore } = unwrapCommentsPagePayload(res);
   const mapped = arr.map((c) => normalizeComment(c, user));
   return { comments: nestFlatCommentsIfNeeded(mapped), hasMore };
@@ -352,12 +354,10 @@ async function fetchRepliesPage(
   cursor: string | null,
   user: AuthUser | null
 ): Promise<{ replies: CommentNode[]; hasMore: boolean }> {
-  const params = new URLSearchParams({ size: String(REPLY_PAGE_SIZE) });
-  if (commentSort && commentSort !== 'latest') params.set('sort', commentSort);
-  if (cursor) params.set('cursor', cursor);
-  const res = await api.get(
-    `/posts/${postId}/comments/${commentId}/replies?${params.toString()}`
-  );
+  const res = await apiGet('/v1/posts/{post_id}/comments/{comment_id}/replies', {
+    path: { post_id: postId, comment_id: commentId },
+    query: { size: REPLY_PAGE_SIZE, sort: commentSort, cursor },
+  });
   const { items, hasMore } = unwrapCommentsPagePayload(res);
   return { replies: items.map((r) => normalizeComment(r, user)), hasMore };
 }
@@ -520,8 +520,8 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     const currentlyLiked = post?.isLiked ?? false;
     try {
       const res = currentlyLiked
-        ? await api.delete<{ data?: { likeCount?: number; isLiked?: boolean } }>(`/likes/posts/${postId}`)
-        : await api.post<{ data?: { likeCount?: number; isLiked?: boolean } }>(`/likes/posts/${postId}`);
+        ? await apiDelete('/v1/likes/posts/{post_id}', { path: { post_id: postId } })
+        : await apiPost('/v1/likes/posts/{post_id}', { path: { post_id: postId } });
       const data = res?.data ?? null;
       const likeCount = data?.likeCount;
       const isLiked = data?.isLiked;
@@ -557,7 +557,10 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       setMessage('');
       setCommentForm((prev) => ({ ...prev, submitting: true }));
       try {
-        await api.post(`/posts/${postId}/comments`, { content });
+        await apiPost('/v1/posts/{post_id}/comments', {
+          path: { post_id: postId },
+          body: { content },
+        });
         setCommentForm((prev) => ({ ...prev, content: '', submitting: false }));
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: (prev.commentCount ?? 0) + 1 } : prev
@@ -580,7 +583,10 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       setMessage('');
       setReplyForm((prev) => ({ ...prev, submitting: true }));
       try {
-        await api.post(`/posts/${postId}/comments`, { content, parentId });
+        await apiPost('/v1/posts/{post_id}/comments', {
+          path: { post_id: postId },
+          body: { content, parentId },
+        });
         setReplyForm((prev) => ({ ...prev, content: '', submitting: false }));
         setReplyToCommentId(null);
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
@@ -600,7 +606,9 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       if (!postId || !commentId) return;
       setMessage('');
       try {
-        await api.delete(`/posts/${postId}/comments/${commentId}`);
+        await apiDelete('/v1/posts/{post_id}/comments/{comment_id}', {
+          path: { post_id: postId, comment_id: commentId },
+        });
         setModalState((prev) => ({ ...prev, commentDeleteId: null }));
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: Math.max(0, (prev.commentCount ?? 0) - 1) } : prev
@@ -618,8 +626,9 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       if (!postId || !commentId || !newContent?.trim()) return;
       setMessage('');
       try {
-        await api.patch(`/posts/${postId}/comments/${commentId}`, {
-          content: newContent.trim(),
+        await apiPatch('/v1/posts/{post_id}/comments/{comment_id}', {
+          path: { post_id: postId, comment_id: commentId },
+          body: { content: newContent.trim() },
         });
         setCommentEdit({ editingId: null, content: '' });
         setCommentsOverride((prev) =>
@@ -665,8 +674,8 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
 
       try {
         const req = isCurrentlyLiked
-          ? api.delete<{ data?: RawComment }>(`/likes/comments/${commentId}`)
-          : api.post<{ data?: RawComment }>(`/likes/comments/${commentId}`);
+          ? apiDelete('/v1/likes/comments/{comment_id}', { path: { comment_id: commentId } })
+          : apiPost('/v1/likes/comments/{comment_id}', { path: { comment_id: commentId } });
         const res = await req;
         const data = (res?.data ?? res) as RawComment | undefined;
         if (
@@ -718,7 +727,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     if (!postId) return;
     setMessage('');
     try {
-      await api.delete(`/posts/${postId}`);
+      await apiDelete('/v1/posts/{post_id}', { path: { post_id: postId } });
       setModalState((prev) => ({ ...prev, postDeleteOpen: false }));
       navigate('/posts');
     } catch (err) {
@@ -739,7 +748,9 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       }
       setMessage('');
       try {
-        await api.post(`/users/${targetUserId}/block`);
+        await apiPost('/v1/users/{target_user_id}/block', {
+          path: { target_user_id: targetUserId },
+        });
         window.location.reload();
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '차단 처리에 실패했습니다.'));

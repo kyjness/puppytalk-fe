@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { api } from '../api/client.js';
+import { apiPost } from '../api/typed.js';
 import { safeImageUrl } from '../utils/index.js';
 import { DEFAULT_PROFILE_IMAGE, HEADER_TITLE } from '../config.js';
 import { NotificationBell } from './Notification/NotificationBell.jsx';
@@ -92,7 +92,7 @@ export function Header({
   const handleLogout = async () => {
     setDropdownOpen(false);
     try {
-      await api.post('/auth/logout');
+      await apiPost('/v1/auth/logout', {});
     } catch (_) {}
     clearUser();
     navigate('/login');

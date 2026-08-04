@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "check-api-drift": "node scripts/check-api-drift.mjs",
@@ -46,7 +47,8 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.2",
-    "vite": "^8.0.0-beta.13"
+    "vite": "^8.0.0-beta.13",
+    "vitest": "4"
   },
   "pnpm": {
     "overrides": {
