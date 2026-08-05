@@ -64,18 +64,30 @@ jobs:
         env:
           BUCKET: ${{ secrets.FRONTEND_BUCKET }}
         run: |
-          # 해시가 붙은 자산은 영구 캐시, index.html만 매번 새로 받게 한다.
-          # 이 구분이 없으면 배포 후에도 캐시된 옛 index.html이 옛 번들을 계속 가리킨다.
-          aws s3 sync dist/ "s3://$BUCKET" --delete \
-            --exclude index.html \
+          # 캐시 정책은 **파일명에 해시가 붙는지**로 가른다.
+          # dist/assets/* 만 Vite가 해시를 붙인다. publicDir(img/)에서 온 imt.png·anim*.json·
+          # fonts/* 는 이름이 그대로라, 여기에 immutable을 걸면 파일을 바꿔도 재방문자와
+          # CloudFront 엣지가 1년 동안 옛것을 계속 받는다(수동 무효화 말고는 방법이 없다).
+
+          # 1) 해시 붙은 번들 — 영구 캐시. URL이 바뀌므로 무효화가 필요 없다.
+          aws s3 sync dist/assets "s3://$BUCKET/assets" --delete \
             --cache-control "public,max-age=31536000,immutable"
+
+          # 2) 해시 없는 정적 자산 — 짧은 TTL로 스스로 갱신되게 둔다.
+          #    --exclude assets/* 는 이 sync의 --delete가 1)이 올린 번들을 지우지 않게 한다.
+          aws s3 sync dist/ "s3://$BUCKET" --delete \
+            --exclude "assets/*" --exclude index.html \
+            --cache-control "public,max-age=300"
+
+          # 3) 진입점 — 항상 재검증. 없으면 캐시된 옛 index.html이 옛 번들을 계속 가리킨다.
           aws s3 cp dist/index.html "s3://$BUCKET/index.html" \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
         run: |
-          # index.html만 무효화하면 된다 — 나머지는 파일명에 해시가 붙어 URL 자체가 바뀐다.
-          # (무효화는 월 1000경로까지 무료라 /* 로 긁을 이유가 없다)
+          # index.html만 무효화한다. 해시 자산은 URL이 바뀌고, 나머지는 위에서 TTL 300초라
+          # 5분 안에 스스로 갱신된다 — 무효화 경로를 파일마다 열거할 필요가 없다.
+          # (무효화는 월 1000경로까지 무료라 /* 로 긁을 이유도 없다)
           aws cloudfront create-invalidation \
             --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
             --paths "/" "/index.html"
