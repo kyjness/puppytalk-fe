@@ -1,4 +1,5 @@
 // 로그인 페이지: useLogin 훅 + LoginForm 조합.
+import { Navigate } from 'react-router-dom';
 import { Header } from '../components/Header.jsx';
 import { useLogin } from '../hooks/useLogin.js';
 import { LoginForm } from '../components/Login';
@@ -15,13 +16,16 @@ export function Login() {
     from,
     navigate,
     handleSubmit,
+    handleDemoLogin,
     handleEmailChange,
     handlePasswordChange,
   } = useLogin();
 
+  // 렌더 중 navigate()를 호출하면 라우터 상태를 다른 컴포넌트 렌더 도중에 바꾸는 셈이라
+  // React가 경고를 냈다(동시성 렌더에서는 폐기된 렌더의 이동까지 남을 수 있다).
+  // 선언형 <Navigate>는 커밋 이후에 이동한다.
   if (isLoggedIn) {
-    navigate(from, { replace: true });
-    return null;
+    return <Navigate to={from} replace />;
   }
 
   return (
@@ -39,6 +43,7 @@ export function Login() {
             formError={formError}
             submitting={submitting}
             onSubmit={handleSubmit}
+            onDemoLogin={handleDemoLogin}
             onEmailChange={handleEmailChange}
             onPasswordChange={handlePasswordChange}
             onSignupClick={() => navigate('/signup')}

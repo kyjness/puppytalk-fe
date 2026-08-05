@@ -44,6 +44,7 @@ export function NotificationBell() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
+  const measuredRef = useRef<{ top: number; right: number; maxHeight: number } | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
 
   const items = useNotificationStore((s) => s.items);
@@ -57,18 +58,33 @@ export function NotificationBell() {
   const toasts = useNotificationStore((s) => s.toasts);
   const removeToast = useNotificationStore((s) => s.removeToast);
 
+  // 위치만 계산한다. 스크롤 동작(overflow·체이닝 차단·막대 숨김)은 정적 CSS라
+  // className에 둔다 — 측정 결과에 섞으면 스크롤할 때마다 재계산이 돌게 된다.
+  // maxHeight만 뷰포트에서 나온다: "더보기"로 목록이 자라도 화면 밖으로 넘어가지 않게.
   const updatePopoverPosition = useCallback(() => {
     const el = wrapRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
     const margin = 8;
-    setPopoverStyle({
-      position: 'fixed',
-      top: r.bottom + margin,
+    const top = r.bottom + margin;
+    const next = {
+      top,
       right: Math.max(8, window.innerWidth - r.right),
-      zIndex: POPOVER_Z,
-      maxWidth: 'min(100vw - 2rem, 300px)',
-    });
+      maxHeight: Math.max(180, window.innerHeight - top - margin),
+    };
+    // 스크롤 중 값이 그대로면 setState를 건너뛴다 — 새 객체를 넣으면 알림 목록 전체가
+    // 매 스크롤 이벤트마다 다시 렌더된다.
+    const prev = measuredRef.current;
+    if (
+      prev &&
+      prev.top === next.top &&
+      prev.right === next.right &&
+      prev.maxHeight === next.maxHeight
+    ) {
+      return;
+    }
+    measuredRef.current = next;
+    setPopoverStyle({ position: 'fixed', zIndex: POPOVER_Z, ...next });
   }, []);
 
   useLayoutEffect(() => {
@@ -78,12 +94,12 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    const onResizeOrScroll = () => updatePopoverPosition();
-    window.addEventListener('resize', onResizeOrScroll);
-    window.addEventListener('scroll', onResizeOrScroll, true);
+    const onChange = () => updatePopoverPosition();
+    window.addEventListener('resize', onChange);
+    window.addEventListener('scroll', onChange, true);
     return () => {
-      window.removeEventListener('resize', onResizeOrScroll);
-      window.removeEventListener('scroll', onResizeOrScroll, true);
+      window.removeEventListener('resize', onChange);
+      window.removeEventListener('scroll', onChange, true);
     };
   }, [open, updatePopoverPosition]);
 
@@ -142,7 +158,7 @@ export function NotificationBell() {
             ref={popoverRef}
             role="dialog"
             aria-label="알림 목록"
-            className="min-w-[240px] rounded-xl border border-stone-200/90 bg-white p-2"
+            className="min-w-[240px] overflow-y-auto overscroll-contain rounded-xl border border-stone-200/90 bg-white p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={popoverStyle}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}

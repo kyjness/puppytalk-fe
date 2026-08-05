@@ -1,25 +1,47 @@
 name: CD
 
+# 빌드 산출물을 S3에 올리고 CloudFront 캐시를 비운다.
+# 자격은 OIDC AssumeRole로만 받는다 — 장기 AK/SK를 저장소에 두지 않는다.
+# 대상 버킷·배포 ID·롤 ARN은 puppytalk-infra 의 demo/ terraform output 값이다.
+
+# main 푸시에 바로 걸지 않고 CI 성공 뒤에 도는 이유: push 트리거로 두면 lint·typecheck·테스트가
+# 깨진 커밋도 그대로 배포된다(두 워크플로가 병렬로 돌아 서로를 막지 못한다).
 on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    name: S3 배포 + CloudFront 무효화
+    # workflow_dispatch에는 conclusion이 없으므로 CI 성공 조건과 OR로 묶는다.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write # OIDC 토큰 발급에 필요
       contents: read
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # workflow_run은 기본 브랜치 HEAD를 체크아웃한다 — CI가 통과한 바로 그 커밋을 배포한다.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -27,22 +49,45 @@ jobs:
 
       - name: Build
         env:
+          # 예: https://api.puppytalk.shop/v1 — 빌드 시점에 번들에 박힌다.
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: pnpm build
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-session-name: github-actions-deployment
+          role-session-name: puppytalk-fe-deploy
           aws-region: ap-northeast-2
 
       - name: Deploy to S3
+        env:
+          BUCKET: ${{ secrets.FRONTEND_BUCKET }}
         run: |
-          aws s3 sync dist/ s3://puppytalk-v2-frontend-bucket --delete
+          # 캐시 정책은 **파일명에 해시가 붙는지**로 가른다.
+          # dist/assets/* 만 Vite가 해시를 붙인다. publicDir(img/)에서 온 imt.png·anim*.json·
+          # fonts/* 는 이름이 그대로라, 여기에 immutable을 걸면 파일을 바꿔도 재방문자와
+          # CloudFront 엣지가 1년 동안 옛것을 계속 받는다(수동 무효화 말고는 방법이 없다).
+
+          # 1) 해시 붙은 번들 — 영구 캐시. URL이 바뀌므로 무효화가 필요 없다.
+          aws s3 sync dist/assets "s3://$BUCKET/assets" --delete \
+            --cache-control "public,max-age=31536000,immutable"
+
+          # 2) 해시 없는 정적 자산 — 짧은 TTL로 스스로 갱신되게 둔다.
+          #    --exclude assets/* 는 이 sync의 --delete가 1)이 올린 번들을 지우지 않게 한다.
+          aws s3 sync dist/ "s3://$BUCKET" --delete \
+            --exclude "assets/*" --exclude index.html \
+            --cache-control "public,max-age=300"
+
+          # 3) 진입점 — 항상 재검증. 없으면 캐시된 옛 index.html이 옛 번들을 계속 가리킨다.
+          aws s3 cp dist/index.html "s3://$BUCKET/index.html" \
+            --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
         run: |
+          # index.html만 무효화한다. 해시 자산은 URL이 바뀌고, 나머지는 위에서 TTL 300초라
+          # 5분 안에 스스로 갱신된다 — 무효화 경로를 파일마다 열거할 필요가 없다.
+          # (무효화는 월 1000경로까지 무료라 /* 로 긁을 이유도 없다)
           aws cloudfront create-invalidation \
             --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
-            --paths "/*"
+            --paths "/" "/index.html"

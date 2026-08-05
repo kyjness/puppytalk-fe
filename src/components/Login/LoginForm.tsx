@@ -1,5 +1,6 @@
-// 로그인 폼: 이메일·비밀번호 필드, formError, 로그인/회원가입 버튼.
+// 로그인 폼: 이메일·비밀번호 필드, formError, 로그인/데모/회원가입 버튼.
 import type { ChangeEvent, FormEvent } from 'react';
+import { DEMO_ACCOUNT } from '../../config.js';
 
 interface LoginFormProps {
   email: string;
@@ -9,6 +10,7 @@ interface LoginFormProps {
   formError: string;
   submitting: boolean;
   onSubmit: (e: FormEvent) => void;
+  onDemoLogin: () => void;
   onEmailChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onPasswordChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onSignupClick: () => void;
@@ -22,6 +24,7 @@ export function LoginForm({
   formError,
   submitting,
   onSubmit,
+  onDemoLogin,
   onEmailChange,
   onPasswordChange,
   onSignupClick,
@@ -104,6 +107,19 @@ export function LoginForm({
       >
         로그인
       </button>
+      <button
+        type="button"
+        className="inline-flex h-[33px] w-full max-w-[360px] self-center items-center justify-center rounded-[4px] border border-black bg-transparent px-5 text-[13px] font-bold leading-[13px] text-black no-underline transition-all duration-200 hover:bg-[#F4F5F7] active:bg-[#E8E9EC] disabled:opacity-50 cursor-pointer"
+        onClick={onDemoLogin}
+        disabled={submitting}
+      >
+        데모 계정으로 둘러보기
+      </button>
+      <p className="self-center text-center font-['Pretendard',sans-serif] text-[11px] font-normal leading-[15px] text-[#666666]">
+        가입 없이 사용해볼 수 있어요
+        <br />
+        {DEMO_ACCOUNT.email} / {DEMO_ACCOUNT.password}
+      </p>
       <button
         type="button"
         className="inline-flex h-[40px] w-fit self-center items-center justify-center rounded-full border-0 bg-transparent px-5 text-[12px] font-normal leading-[12px] text-black no-underline transition-all duration-200 hover:text-[#333333] active:text-[#111111] cursor-pointer"

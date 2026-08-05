@@ -510,7 +510,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Comments */
+        /**
+         * Get Comments
+         * @description 루트 댓글 목록 — 커서가 아니라 offset+total이다(ADR 0016).
+         *
+         *     인기순은 정렬 축(`like_count`)이 변동값이라 keyset이 성립하지 않고, 댓글은 게시글
+         *     1건에 국한된 유한 집합이라 깊은 offset이 실질 문제가 되지 않는다. 대댓글
+         *     ("/{comment_id}/replies")은 축이 불변이라 커서를 유지한다.
+         */
         get: operations["get_comments_v1_posts__post_id__comments_get"];
         put?: never;
         /** Create Comment */
@@ -1195,6 +1202,20 @@ export interface components {
             code: components["schemas"]["ApiCode"] | string;
             /** Data */
             data?: null;
+            /** Message */
+            message?: string | null;
+            /**
+             * Requestid
+             * @description 요청 추적 ID(X-Request-ID 헤더와 동일). 에러 토스트·지원 문의용.
+             * @default
+             */
+            requestId?: string;
+        };
+        /** ApiResponse[PaginatedResponse[CommentResponse]] */
+        ApiResponse_PaginatedResponse_CommentResponse__: {
+            /** Code */
+            code: components["schemas"]["ApiCode"] | string;
+            data?: components["schemas"]["PaginatedResponse_CommentResponse_"] | null;
             /** Message */
             message?: string | null;
             /**
@@ -1958,6 +1979,21 @@ export interface components {
          * @enum {string}
          */
         NotificationKind: "COMMENT_ON_POST" | "LIKE_POST" | "LIKE_COMMENT";
+        /** PaginatedResponse[CommentResponse] */
+        PaginatedResponse_CommentResponse_: {
+            /** Items */
+            items?: components["schemas"]["CommentResponse"][];
+            /**
+             * Hasmore
+             * @default false
+             */
+            hasMore?: boolean;
+            /**
+             * Total
+             * @default 0
+             */
+            total?: number;
+        };
         /** PaginatedResponse[ReportedPostItem] */
         PaginatedResponse_ReportedPostItem_: {
             /** Items */
@@ -3384,11 +3420,11 @@ export interface operations {
     get_comments_v1_posts__post_id__comments_get: {
         parameters: {
             query?: {
-                /** @description 무한 스크롤: 직전 응답의 마지막 루트 댓글 id(공개 ID). 미지정 시 처음부터. */
-                cursor?: string | null;
+                /** @description 1-base 페이지 번호 */
+                page?: number;
                 /** @description 페이지 크기 */
                 size?: number;
-                /** @description 정렬: latest|oldest */
+                /** @description 정렬: latest|popular */
                 sort?: string | null;
             };
             header?: never;
@@ -3406,7 +3442,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_CursorPage_CommentResponse__"];
+                    "application/json": components["schemas"]["ApiResponse_PaginatedResponse_CommentResponse__"];
                 };
             };
             /** @description Validation Error */

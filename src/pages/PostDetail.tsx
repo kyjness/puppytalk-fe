@@ -23,10 +23,12 @@ export function PostDetail() {
     error,
     post,
     comments,
-    hasMoreComments,
-    loadingMoreComments,
-    loadMoreComments,
+    commentPage,
+    commentTotalPages,
+    setCommentPage,
     loadMoreReplies,
+    collapseReplies,
+    expandedReplyIds,
     replyLoadingIds,
     commentSort,
     setCommentSort,
@@ -172,10 +174,12 @@ export function PostDetail() {
               onDeleteOpen={(id) => setModalState((prev) => ({ ...prev, commentDeleteId: id }))}
               onBlockUser={handleBlockUser}
               onReportOpen={openCommentReport}
-              hasMoreComments={hasMoreComments}
-              loadingMoreComments={loadingMoreComments}
-              onLoadMoreComments={loadMoreComments}
+              commentPage={commentPage}
+              commentTotalPages={commentTotalPages}
+              setCommentPage={setCommentPage}
               onLoadMoreReplies={loadMoreReplies}
+              onCollapseReplies={collapseReplies}
+              expandedReplyIds={expandedReplyIds}
               replyLoadingIds={replyLoadingIds}
               replyToCommentId={replyToCommentId}
               setReplyToCommentId={setReplyToCommentId}
