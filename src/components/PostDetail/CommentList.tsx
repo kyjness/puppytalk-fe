@@ -48,6 +48,9 @@ interface CommentItemProps {
   setReplyForm: Dispatch<SetStateAction<ReplyFormState>>;
   onReplySubmit: (e: FormEvent, commentId: string) => void;
   onLoadMoreReplies: (commentId: string) => void;
+  onCollapseReplies: (commentId: string) => void;
+  /** "더보기"로 답글을 이어 받은 루트 — 이 루트에만 접기가 뜬다. */
+  expandedReplyIds: ReadonlySet<string>;
   replyLoadingIds: ReadonlySet<string>;
   depth?: number;
 }
@@ -64,10 +67,12 @@ interface CommentListProps {
   onDeleteOpen?: (commentId: string) => void;
   onBlockUser?: (authorId: string) => void;
   onReportOpen?: (targetType: 'COMMENT', targetId: string) => void;
-  hasMoreComments: boolean;
-  loadingMoreComments: boolean;
-  onLoadMoreComments: () => void;
+  commentPage: number;
+  commentTotalPages: number;
+  setCommentPage: (page: number) => void;
   onLoadMoreReplies: (commentId: string) => void;
+  onCollapseReplies: (commentId: string) => void;
+  expandedReplyIds: ReadonlySet<string>;
   replyLoadingIds: ReadonlySet<string>;
   replyToCommentId: string | null;
   setReplyToCommentId: Dispatch<SetStateAction<string | null>>;
@@ -102,9 +107,10 @@ function arePropsEqual(prev: CommentItemProps, next: CommentItemProps) {
   // 해당 CommentItem의 데이터가 바뀌면 반드시 리렌더
   if (didCommentChange(prev.c, next.c)) return false;
 
-  // 이 댓글의 답글 로딩 상태 변화(스피너/비활성)만 반영 — Set 레퍼런스 비교는 무의미하다.
+  // 이 댓글의 답글 로딩·펼침 상태 변화만 반영 — Set 레퍼런스 비교는 무의미하다.
   const cid = next.c?.id ?? '';
   if (prev.replyLoadingIds.has(cid) !== next.replyLoadingIds.has(cid)) return false;
+  if (prev.expandedReplyIds.has(cid) !== next.expandedReplyIds.has(cid)) return false;
 
   // 본인/타인 여부, 메뉴 노출 등에 영향
   if ((prev.currentUserId ?? null) !== (next.currentUserId ?? null)) return false;
@@ -147,6 +153,8 @@ const CommentItem = React.memo(function CommentItem({
   setReplyForm,
   onReplySubmit,
   onLoadMoreReplies,
+  onCollapseReplies,
+  expandedReplyIds,
   replyLoadingIds,
   depth = 0,
 }: CommentItemProps) {
@@ -564,11 +572,14 @@ const CommentItem = React.memo(function CommentItem({
                 setReplyForm={setReplyForm}
                 onReplySubmit={onReplySubmit}
                 onLoadMoreReplies={onLoadMoreReplies}
+                onCollapseReplies={onCollapseReplies}
+                expandedReplyIds={expandedReplyIds}
                 replyLoadingIds={replyLoadingIds}
                 depth={1}
               />
             ))}
-            {/* 서버가 루트당 preview만 실어 보낸다 — 나머지는 눌러서 이어 받는다. */}
+            {/* 서버가 루트당 preview만 실어 보낸다 — 나머지는 눌러서 이어 받는다.
+                남은 답글이 있으면서 이미 펼쳐둔 상태면 더보기와 접기가 함께 뜬다. */}
             {c.hasMoreReplies && (
               <button
                 type="button"
@@ -581,6 +592,15 @@ const CommentItem = React.memo(function CommentItem({
                   : `―― 답글 ${Math.max(0, (c.replyCount ?? 0) - c.replies.length)}개 더보기`}
               </button>
             )}
+            {expandedReplyIds.has(cid) && (
+              <button
+                type="button"
+                className={CC.COMMENT_REPLIES_TOGGLE}
+                onClick={() => onCollapseReplies(cid)}
+              >
+                ―― 답글 접기
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -588,12 +608,15 @@ const CommentItem = React.memo(function CommentItem({
   );
 }, arePropsEqual);
 
-// 서버가 지원하는 값만 노출한다 — 인기순은 BE에서 의도적으로 제거됐고, 보내봐야
-// latest로 조용히 떨어진다(사용자에겐 "정렬이 안 먹는" 것으로 보인다).
+// 서버가 지원하는 값만 노출한다(ADR 0016). 기본값은 최신순 — 훅의 초기 state와 서버 폴백이
+// 둘 다 latest라 어느 쪽이 이기든 같은 화면이 나온다.
 const COMMENT_SORTS = [
+  { value: 'popular', label: '인기순' },
   { value: 'latest', label: '최신순' },
-  { value: 'oldest', label: '등록순' },
 ];
+
+/** 페이지 nav에 현재 쪽 기준 앞뒤로 몇 개씩 낼지(처음·마지막은 별도로 항상 낸다). */
+const PAGE_WINDOW = 2;
 
 export function CommentList({
   comments,
@@ -607,10 +630,12 @@ export function CommentList({
   onDeleteOpen,
   onBlockUser,
   onReportOpen,
-  hasMoreComments,
-  loadingMoreComments,
-  onLoadMoreComments,
+  commentPage,
+  commentTotalPages,
+  setCommentPage,
   onLoadMoreReplies,
+  onCollapseReplies,
+  expandedReplyIds,
   replyLoadingIds,
   replyToCommentId,
   setReplyToCommentId,
@@ -664,6 +689,8 @@ export function CommentList({
           setReplyForm={setReplyForm}
           onReplySubmit={handleReplySubmit}
           onLoadMoreReplies={onLoadMoreReplies}
+          onCollapseReplies={onCollapseReplies}
+          expandedReplyIds={expandedReplyIds}
           replyLoadingIds={replyLoadingIds}
         />
       )),
@@ -683,9 +710,62 @@ export function CommentList({
       setReplyForm,
       handleReplySubmit,
       onLoadMoreReplies,
+      onCollapseReplies,
+      expandedReplyIds,
       replyLoadingIds,
     ]
   );
+
+  // 쪽 버튼을 전부 그리면 댓글 500개짜리 글에서 버튼 50개가 상주한다 — 현재 쪽 주변만 낸다.
+  // 메모하지 않으면 답글·수정 입력 한 글자마다(둘 다 prop이라 CommentList가 리렌더된다)
+  // 이 목록이 통째로 다시 만들어진다.
+  const pageNav = useMemo(() => {
+    // 쪽수가 1이어도 현재 쪽이 1이 아니면 nav를 남긴다 — 훅의 클램프가 어떤 이유로든
+    // 늦으면 돌아올 컨트롤이 통째로 사라져 막다른 길이 된다.
+    if (commentTotalPages <= 1 && commentPage <= 1) return null;
+    const lastPage = Math.max(commentTotalPages, commentPage);
+    const pages: number[] = [];
+    for (
+      let p = Math.max(1, commentPage - PAGE_WINDOW);
+      p <= Math.min(lastPage, commentPage + PAGE_WINDOW);
+      p++
+    ) {
+      pages.push(p);
+    }
+    const jump = (p: number) => (
+      <li key={p}>
+        <button
+          type="button"
+          className={CC.commentPaginationBtn(p === commentPage)}
+          aria-current={p === commentPage ? 'page' : undefined}
+          // 현재 쪽은 눌러도 아무 일이 없다 — 누를 수 있게 두지 않는다.
+          disabled={p === commentPage}
+          onClick={() => setCommentPage(p)}
+        >
+          {p}
+        </button>
+      </li>
+    );
+    return (
+      <nav className={CC.COMMENT_PAGINATION} aria-label="댓글 페이지">
+        <ul className={CC.COMMENT_PAGINATION_UL}>
+          {pages[0] > 1 && jump(1)}
+          {pages[0] > 2 && (
+            <li key="lead" aria-hidden className="self-center px-1 text-[#94a3b8]">
+              …
+            </li>
+          )}
+          {pages.map(jump)}
+          {pages[pages.length - 1] < lastPage - 1 && (
+            <li key="tail" aria-hidden className="self-center px-1 text-[#94a3b8]">
+              …
+            </li>
+          )}
+          {pages[pages.length - 1] < lastPage && jump(lastPage)}
+        </ul>
+      </nav>
+    );
+  }, [commentPage, commentTotalPages, setCommentPage]);
 
   return (
     <>
@@ -706,19 +786,8 @@ export function CommentList({
       <section id="comment-list" className={CC.COMMENT_LIST_SECTION}>
         {renderedComments}
       </section>
-      {/* 서버가 keyset(cursor) 페이지네이션이라 전체 페이지 수를 알 수 없다 — 번호 대신 이어보기. */}
-      {hasMoreComments && (
-        <nav className={CC.COMMENT_PAGINATION} aria-label="댓글 더 보기">
-          <button
-            type="button"
-            className={CC.commentPaginationBtn(false)}
-            disabled={loadingMoreComments}
-            onClick={onLoadMoreComments}
-          >
-            {loadingMoreComments ? '불러오는 중…' : '댓글 더 보기'}
-          </button>
-        </nav>
-      )}
+      {/* 서버가 total을 주므로 전체 쪽수를 알 수 있다(ADR 0016) — 임의 페이지로 점프한다. */}
+      {pageNav}
     </>
   );
 }

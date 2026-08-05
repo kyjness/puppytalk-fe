@@ -1,6 +1,6 @@
 // 게시글 상세: React Query(게시글·댓글) + 모달·댓글 CRUD.
 import { useState, useCallback, useEffect, useRef, useMemo, type FormEvent } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import type { NavigateFunction } from 'react-router-dom';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../api/typed.js';
 import type { Schemas } from '../api/api-types.js';
@@ -11,11 +11,12 @@ import {
   getClientErrorCode,
   appendDedupedById,
   getProfileImageUrl,
-  nextCursorFromPage,
   safeImageUrl,
 } from '../utils/index.js';
 
 const COMMENT_PAGE_SIZE = 10;
+// 로딩 중에도 참조가 안 바뀌게 — 매번 새 []를 만들면 comments memo가 통째로 다시 돈다.
+const EMPTY_COMMENTS: CommentNode[] = [];
 // 루트당 대댓글은 서버가 preview(상수)만 실어 보낸다 — 나머지는 이 크기로 이어 받는다.
 const REPLY_PAGE_SIZE = 10;
 const POST_EDIT_MERGE_KEY = (id: string | number) => `pt_post_edit_merge_${id}`;
@@ -229,15 +230,21 @@ function normalizeComment(c: RawComment, currentUser: AuthUser | null): CommentN
   };
 }
 
-function unwrapCommentsPagePayload(res: unknown): { items: RawComment[]; hasMore: boolean } {
-  if (!res || typeof res !== 'object') return { items: [], hasMore: false };
+/** 루트 목록은 total까지, 대댓글(커서)은 total 없이 — 같은 언랩을 공유한다. */
+function unwrapCommentsPagePayload(res: unknown): {
+  items: RawComment[];
+  hasMore: boolean;
+  total: number;
+} {
+  if (!res || typeof res !== 'object') return { items: [], hasMore: false, total: 0 };
   const o = res as { data?: unknown };
   const inner = (o.data !== undefined ? o.data : res) as {
     items?: unknown;
     hasMore?: boolean;
+    total?: number;
   };
   const items = Array.isArray(inner?.items) ? (inner.items as RawComment[]) : [];
-  return { items, hasMore: Boolean(inner?.hasMore) };
+  return { items, hasMore: Boolean(inner?.hasMore), total: Number(inner?.total ?? 0) };
 }
 
 function flattenCommentForest(items: CommentNode[]): CommentNode[] {
@@ -320,20 +327,20 @@ async function fetchPostNormalized(
   return normalized;
 }
 
-/** 서버는 keyset(cursor) 페이지네이션이다 — page 번호·total은 존재하지 않는다. */
+/** 루트 목록은 offset+total이다 — 인기순(변동 축)을 커서로 낼 수 없어서다. */
 async function fetchCommentsPage(
   postId: string,
   commentSort: string,
-  cursor: string | undefined,
+  page: number,
   user: AuthUser | null
-): Promise<{ comments: CommentNode[]; hasMore: boolean }> {
+): Promise<{ comments: CommentNode[]; total: number }> {
   const res = await apiGet('/v1/posts/{post_id}/comments', {
     path: { post_id: postId },
-    query: { size: COMMENT_PAGE_SIZE, sort: commentSort, cursor },
+    query: { page, size: COMMENT_PAGE_SIZE, sort: commentSort },
   });
-  const { items: arr, hasMore } = unwrapCommentsPagePayload(res);
+  const { items: arr, total } = unwrapCommentsPagePayload(res);
   const mapped = arr.map((c) => normalizeComment(c, user));
-  return { comments: nestFlatCommentsIfNeeded(mapped), hasMore };
+  return { comments: nestFlatCommentsIfNeeded(mapped), total };
 }
 
 /** 한 루트의 대댓글 다음 페이지 — 목록 응답의 preview 뒤를 이어 받는다. */
@@ -356,6 +363,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
   const { isRestored } = useAuth();
   const queryClient = useQueryClient();
   const [commentSort, setCommentSortState] = useState('latest');
+  const [commentPage, setCommentPageState] = useState(1);
 
   // 루트별로 "더보기"로 이어 받은 대댓글. 서버 preview 뒤에 이어 붙인다.
   const [replyExtras, setReplyExtras] = useState<
@@ -363,11 +371,41 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
   >({});
   const [replyLoadingIds, setReplyLoadingIds] = useState<ReadonlySet<string>>(new Set());
 
-  const setCommentSort = useCallback((sort: string) => {
-    setCommentSortState(sort);
-    // 정렬이 바뀌면 대댓글 커서 축도 뒤집힌다 — 이어받은 것들을 버리고 preview부터 다시.
-    setReplyExtras({});
+  // 페이지 위치와 이어받은 대댓글은 "이 글의 이 페이지"에 매달린 상태다 — 대상이 바뀌면
+  // 함께 버려야 한다. 정렬 변경·글 이동·페이지 이동이 같은 정리를 공유한다.
+  const resetToFirstPage = useCallback(() => {
+    setCommentPageState(1);
+    // 이미 비어 있으면 새 객체를 만들지 않는다 — 마운트 시 이펙트가 한 번 더 렌더시키는 것 방지.
+    setReplyExtras((prev) => (Object.keys(prev).length === 0 ? prev : {}));
   }, []);
+
+  const setCommentSort = useCallback(
+    (sort: string) => {
+      setCommentSortState(sort);
+      // 정렬이 바뀌면 순서 축 자체가 달라진다 — 1쪽부터 다시 본다.
+      resetToFirstPage();
+    },
+    [resetToFirstPage]
+  );
+
+  const setCommentPage = useCallback(
+    (page: number) => {
+      // 같은 쪽이면 아무것도 하지 않는다. 빼면 setReplyExtras가 새 객체를 만들어,
+      // 현재 쪽 번호를 눌러본 사용자는 펼쳐둔 답글이 전부 접히는 것만 보게 된다.
+      if (page === commentPage) return;
+      setCommentPageState(page);
+      // 이어받은 대댓글은 이 페이지의 루트들에 매달린 것이다 — preview부터 다시.
+      setReplyExtras({});
+    },
+    [commentPage]
+  );
+
+  // 글이 바뀌면 페이지도 1쪽으로. 라우터가 /posts/:id에 같은 element를 재사용하므로
+  // 이 state는 글을 넘나들어도 살아남는다 — 3쪽을 보다 댓글 적은 글로 이동하면 빈 목록에
+  // 페이지 nav까지 사라져 돌아올 길이 없어진다(커서 시절엔 위치가 쿼리 캐시 안에 있었다).
+  useEffect(() => {
+    resetToFirstPage();
+  }, [postId, resetToFirstPage]);
 
   const [message, setMessage] = useState('');
   const [modalState, setModalState] = useState<ModalState>({
@@ -385,8 +423,8 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
   });
   const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
   const [replyForm, setReplyForm] = useState({ content: '', submitting: false });
-  // 낙관적 갱신은 **id별 패치**로 둔다. 리스트를 통째로 덮으면 페이지 누적(fetchNextPage)이
-  // 그 스냅샷에 가려 화면이 얼어붙는다 — 좋아요 한 번에 "더 보기"가 죽던 원인.
+  // 낙관적 갱신은 **id별 패치**로 둔다. 리스트를 통째로 덮으면 서버가 새로 준 페이지가
+  // 그 스냅샷에 가려 화면이 얼어붙는다 — 좋아요 한 번에 목록 갱신이 죽던 원인.
   const [optimisticPatches, setOptimisticPatches] = useState<
     Record<string, Partial<CommentNode>>
   >({});
@@ -403,13 +441,11 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     enabled: Boolean(postId && isRestored),
   });
 
-  const commentsQuery = useInfiniteQuery({
-    queryKey: ['post', postId, 'comments', commentSort, userKey],
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) => fetchCommentsPage(postId, commentSort, pageParam, user),
-    // undefined = 다음 페이지 없음. 커서는 마지막 루트 댓글 id.
-    getNextPageParam: (page) =>
-      nextCursorFromPage(page.comments, page.hasMore) ?? undefined,
+  const commentsQuery = useQuery({
+    queryKey: ['post', postId, 'comments', commentSort, commentPage, userKey],
+    queryFn: () => fetchCommentsPage(postId, commentSort, commentPage, user),
+    // 페이지를 넘기는 동안 목록이 빈 화면으로 깜빡이지 않게 직전 페이지를 유지한다.
+    placeholderData: keepPreviousData,
     enabled: Boolean(postId && isRestored),
   });
 
@@ -419,10 +455,19 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     ? getApiErrorMessage(getClientErrorCode(postQuery.error), '게시글을 불러오지 못했습니다.')
     : '';
 
-  const fetchedComments = useMemo(
-    () => (commentsQuery.data?.pages ?? []).flatMap((p) => p.comments),
-    [commentsQuery.data?.pages]
+  const fetchedComments = commentsQuery.data?.comments ?? EMPTY_COMMENTS;
+  const commentTotalPages = Math.max(
+    1,
+    Math.ceil((commentsQuery.data?.total ?? 0) / COMMENT_PAGE_SIZE)
   );
+
+  // 쪽수가 줄면(마지막 댓글 삭제 등) 현재 쪽이 범위를 벗어난다 — 그 상태로 두면 빈 목록에
+  // 페이지 nav까지 사라져 돌아올 길이 없다. 응답을 받은 뒤에만 판단한다(로딩 중 0으로
+  // 내려가는 순간에 끌려가지 않게).
+  useEffect(() => {
+    if (!commentsQuery.data) return;
+    if (commentPage > commentTotalPages) setCommentPage(commentTotalPages);
+  }, [commentsQuery.data, commentPage, commentTotalPages, setCommentPage]);
 
   // 서버 페이지 + 이어받은 대댓글 + 낙관적 패치를 **합성**한다. 셋 중 하나가 나머지를
   // 덮으면 안 된다 — 예전엔 낙관적 갱신이 리스트를 통째로 덮어 페이지 누적이 가려졌다.
@@ -445,17 +490,40 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     await queryClient.invalidateQueries({ queryKey: ['post', postId] });
   }, [queryClient, postId]);
 
-  const loadComments = useCallback(async () => {
-    // replyExtras는 비우지 않는다 — 커서 축이 그대로라 유효하고, 비우면 새 댓글 하나에
-    // 펼쳐둔 스레드가 전부 접힌다. 축이 바뀌는 정렬 변경에서만 비운다(setCommentSort).
-    setOptimisticPatches({});
-    await queryClient.invalidateQueries({ queryKey: ['post', postId, 'comments'] });
-  }, [queryClient, postId]);
+  const loadComments = useCallback(
+    async ({ refetch = true }: { refetch?: boolean } = {}) => {
+      // replyExtras는 비우지 않는다 — 커서 축이 그대로라 유효하고, 비우면 새 댓글 하나에
+      // 펼쳐둔 스레드가 전부 접힌다. 축이 바뀌는 정렬 변경에서만 비운다(setCommentSort).
+      setOptimisticPatches({});
+      // refetch=false는 "stale 표시만" — 이어서 페이지를 바꿔 스스로 페치를 유발할 때 쓴다.
+      // 둘 다 페치하면 앞의 요청이 취소되며 왕복 하나가 통째로 낭비된다.
+      await queryClient.invalidateQueries({
+        queryKey: ['post', postId, 'comments'],
+        ...(refetch ? {} : { refetchType: 'none' as const }),
+      });
+    },
+    [queryClient, postId]
+  );
 
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = commentsQuery;
-  const loadMoreComments = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  // "답글 접기" — 이어받은 것만 버리면 서버 preview와 서버가 준 hasMoreReplies로 자동 복귀한다
+  // (mergeReplyExtras가 extra 없는 루트는 건드리지 않는다). 별도 접힘 상태를 두지 않는 이유다.
+  const collapseReplies = useCallback((commentId: string) => {
+    setReplyExtras((prev) => {
+      if (!prev[commentId]) return prev;
+      const { [commentId]: _dropped, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const expandedReplyIds = useMemo<ReadonlySet<string>>(
+    () =>
+      new Set(
+        Object.entries(replyExtras)
+          .filter(([, extra]) => extra.items.length > 0)
+          .map(([id]) => id)
+      ),
+    [replyExtras]
+  );
 
   const loadMoreReplies = useCallback(
     async (commentId: string) => {
@@ -558,13 +626,30 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         queryClient.setQueryData<PostDetailData>(['post', postId, userKey], (prev) =>
           prev ? { ...prev, commentCount: (prev.commentCount ?? 0) + 1 } : prev
         );
-        await loadComments();
+        // 새 루트 댓글은 1쪽에 달린다 — 3쪽에 머물면 "등록했는데 아무 일도 안 일어난"
+        // 화면이 된다(누적 목록이던 시절엔 없던 문제다).
+        // 페이지가 실제로 바뀔 때만 invalidate의 페치를 끈다 — 쿼리 키 변경이 이미 페치를
+        // 유발하므로 둘 다 켜면 앞 요청이 취소되며 왕복 하나가 낭비된다. 이미 1쪽이면
+        // 키가 그대로라 invalidate가 직접 가져와야 한다(끄면 새 댓글이 안 보인다).
+        const movesToFirstPage = commentPage !== 1;
+        await loadComments({ refetch: !movesToFirstPage });
+        if (movesToFirstPage) setCommentPage(1);
       } catch (err) {
         setMessage(getApiErrorMessage(getClientErrorCode(err), '댓글 등록에 실패했습니다.'));
         setCommentForm((prev) => ({ ...prev, submitting: false }));
       }
     },
-    [postId, user, commentForm.content, navigate, loadComments, queryClient, userKey]
+    [
+      postId,
+      user,
+      commentForm.content,
+      commentPage,
+      navigate,
+      loadComments,
+      setCommentPage,
+      queryClient,
+      userKey,
+    ]
   );
 
   const handleReplySubmit = useCallback(
@@ -749,10 +834,12 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
     error,
     post,
     comments,
-    hasMoreComments: Boolean(commentsQuery.hasNextPage),
-    loadingMoreComments: commentsQuery.isFetchingNextPage,
-    loadMoreComments,
+    commentPage,
+    commentTotalPages,
+    setCommentPage,
     loadMoreReplies,
+    collapseReplies,
+    expandedReplyIds,
     replyLoadingIds,
     commentSort,
     setCommentSort,
