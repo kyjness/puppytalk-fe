@@ -58,7 +58,7 @@ describe('usePostDetail 요청 URL', () => {
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
     const urls = get.mock.calls.map((c) => c[0] as string);
     expect(urls).toContain(`/posts/${POST_ID}`);
-    expect(urls).toContain(`/posts/${POST_ID}/comments?page=1&size=10&sort=latest`);
+    expect(urls).toContain(`/posts/${POST_ID}/comments?page=1&size=10&sort=popular`);
   });
 
   it('다른 글로 이동하면 페이지가 1쪽으로 돌아간다', async () => {
@@ -82,7 +82,7 @@ describe('usePostDetail 요청 URL', () => {
 
     await waitFor(() => expect(result.current.commentPage).toBe(1));
     expect(get.mock.calls.map((c) => c[0] as string)).toContain(
-      '/posts/post-2/comments?page=1&size=10&sort=latest'
+      '/posts/post-2/comments?page=1&size=10&sort=popular'
     );
   });
 
@@ -152,22 +152,22 @@ describe('usePostDetail 요청 URL', () => {
     expect(result.current.expandedReplyIds.has(rootId)).toBe(true);
   });
 
-  it('정렬을 인기순으로 바꾸면 sort=popular로 1쪽부터 다시 부른다', async () => {
+  it('정렬을 최신순으로 바꾸면 sort=latest로 1쪽부터 다시 부른다', async () => {
     const { result } = mountHook();
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
 
     act(() => result.current.setCommentPage(3));
     await waitFor(() =>
       expect(get.mock.calls.map((c) => c[0] as string)).toContain(
-        `/posts/${POST_ID}/comments?page=3&size=10&sort=latest`
+        `/posts/${POST_ID}/comments?page=3&size=10&sort=popular`
       )
     );
 
-    act(() => result.current.setCommentSort('popular'));
+    act(() => result.current.setCommentSort('latest'));
     // 정렬을 바꾸면 3쪽에 머무르지 않는다 — 순서 축이 달라져 그 페이지 번호가 의미를 잃는다.
     await waitFor(() =>
       expect(get.mock.calls.map((c) => c[0] as string)).toContain(
-        `/posts/${POST_ID}/comments?page=1&size=10&sort=popular`
+        `/posts/${POST_ID}/comments?page=1&size=10&sort=latest`
       )
     );
   });
@@ -205,7 +205,8 @@ describe('usePostDetail 요청 URL', () => {
 
     const repliesUrl = get.mock.calls.map((c) => c[0] as string).find((u) => u.includes('/replies'));
     // 순서가 뒤바뀌면 /posts/root-9/comments/post-1/replies 가 된다 — 타입은 통과한다.
-    expect(repliesUrl).toBe(`/posts/${POST_ID}/comments/${rootId}/replies?size=10&sort=latest&cursor=r1`);
+    // sort는 싣지 않는다 — 대댓글 축은 루트 정렬과 무관하게 id 고정이다(ADR 0016).
+    expect(repliesUrl).toBe(`/posts/${POST_ID}/comments/${rootId}/replies?size=10&cursor=r1`);
   });
 
   it('좋아요 후 2쪽으로 넘어가도 새 페이지가 렌더되고 낙관적 갱신이 남는다', async () => {

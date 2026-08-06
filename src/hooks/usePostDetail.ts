@@ -343,17 +343,20 @@ async function fetchCommentsPage(
   return { comments: nestFlatCommentsIfNeeded(mapped), total };
 }
 
-/** 한 루트의 대댓글 다음 페이지 — 목록 응답의 preview 뒤를 이어 받는다. */
+/** 한 루트의 대댓글 다음 페이지 — 목록 응답의 preview 뒤를 이어 받는다.
+ *
+ * 루트의 정렬(`commentSort`)을 넘기지 않는다 — 대댓글엔 좋아요 UI가 없어 인기순이 성립하지
+ * 않고, 서버도 축을 `id`로 고정한다(ADR 0016). 생략이 곧 서버 기본값(최신순)이다.
+ */
 async function fetchRepliesPage(
   postId: string,
   commentId: string,
-  commentSort: string,
   cursor: string | null,
   user: AuthUser | null
 ): Promise<{ replies: CommentNode[]; hasMore: boolean }> {
   const res = await apiGet('/v1/posts/{post_id}/comments/{comment_id}/replies', {
     path: { post_id: postId, comment_id: commentId },
-    query: { size: REPLY_PAGE_SIZE, sort: commentSort, cursor },
+    query: { size: REPLY_PAGE_SIZE, cursor },
   });
   const { items, hasMore } = unwrapCommentsPagePayload(res);
   return { replies: items.map((r) => normalizeComment(r, user)), hasMore };
@@ -362,7 +365,8 @@ async function fetchRepliesPage(
 export function usePostDetail(postId: string, user: AuthUser | null, navigate: NavigateFunction) {
   const { isRestored } = useAuth();
   const queryClient = useQueryClient();
-  const [commentSort, setCommentSortState] = useState('latest');
+  // 기본 인기순 — 동점(좋아요 없음)은 서버 타이브레이커(id DESC)로 최신순이 된다(ADR 0016).
+  const [commentSort, setCommentSortState] = useState('popular');
   const [commentPage, setCommentPageState] = useState(1);
 
   // 루트별로 "더보기"로 이어 받은 대댓글. 서버 preview 뒤에 이어 붙인다.
@@ -539,13 +543,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
       inFlightRepliesRef.current.add(commentId);
       setReplyLoadingIds((prev) => new Set(prev).add(commentId));
       try {
-        const { replies, hasMore } = await fetchRepliesPage(
-          postId,
-          commentId,
-          commentSort,
-          cursor,
-          user
-        );
+        const { replies, hasMore } = await fetchRepliesPage(postId, commentId, cursor, user);
         setReplyExtras((prev) => ({
           ...prev,
           [commentId]: {
@@ -564,7 +562,7 @@ export function usePostDetail(postId: string, user: AuthUser | null, navigate: N
         });
       }
     },
-    [postId, commentSort, user]
+    [postId, user]
   );
 
   const handleLike = useCallback(async () => {
