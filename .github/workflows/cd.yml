@@ -25,6 +25,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       id-token: write # OIDC 토큰 발급에 필요
       contents: read

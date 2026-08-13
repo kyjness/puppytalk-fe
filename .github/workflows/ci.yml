@@ -11,6 +11,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -55,6 +56,7 @@ jobs:
     # "not supported"로 실패한다 — 그때 continue-on-error로 덮지 말고 설정을 다시 켤 것.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
