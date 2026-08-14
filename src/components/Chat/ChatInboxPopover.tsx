@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useRecentChatRooms, type RecentChatRoom } from '../../hooks/useRecentChatRooms';
 import { useChatUiStore } from '../../store/useChatUiStore';
-import { calculateDogAge, escapeHtml, formatDogGenderLabel, safeImageUrl } from '../../utils/index.js';
+import {
+  calculateDogAge,
+  escapeHtml,
+  formatChatTime12h,
+  formatDogGenderLabel,
+  safeImageUrl,
+} from '../../utils/index.js';
 import { DEFAULT_PROFILE_IMAGE } from '../../config.js';
 
 const POPOVER_CLASS =
@@ -19,14 +25,8 @@ function formatUpdatedAt(iso: string): string {
     const startOfThatDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const dayDiff = Math.round((startOfToday.getTime() - startOfThatDay.getTime()) / 86_400_000);
 
-    // 오늘: 시간만
-    if (dayDiff === 0) {
-      const hours24 = d.getHours();
-      const period = hours24 < 12 ? '오전' : '오후';
-      const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-      const mm = String(d.getMinutes()).padStart(2, '0');
-      return `${period} ${hours12}:${mm}`;
-    }
+    // 오늘: 시간만 — 말풍선 옆 시각과 같은 표기를 쓴다(한 화면에서 형식이 갈리지 않게).
+    if (dayDiff === 0) return formatChatTime12h(d);
 
     // 어제: 라벨
     if (dayDiff === 1) return '어제';
