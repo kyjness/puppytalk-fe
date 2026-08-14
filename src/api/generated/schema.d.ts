@@ -3424,7 +3424,7 @@ export interface operations {
                 page?: number;
                 /** @description 페이지 크기 */
                 size?: number;
-                /** @description 정렬: latest|popular */
+                /** @description 정렬: popular(기본)|latest */
                 sort?: string | null;
             };
             header?: never;
@@ -4271,10 +4271,12 @@ export interface operations {
     list_room_messages_v1_chat_rooms__room_id__messages_get: {
         parameters: {
             query?: {
-                /** @description 무한 스크롤: 직전 응답의 마지막 메시지 id(공개 ID). 미지정 시 최신부터. */
+                /** @description 커서 메시지 id(공개 ID). 미지정 시 최신부터. */
                 cursor?: string | null;
                 /** @description 한 번에 가져올 최대 개수 */
                 limit?: number;
+                /** @description before=커서보다 과거(무한 스크롤), after=커서 이후(재연결 재동기, cursor 필수). 응답 items는 방향과 무관하게 항상 최신순 — 다음 커서는 before면 items[-1].id, after면 items[0].id 를 쓴다. */
+                direction?: "before" | "after";
             };
             header?: never;
             path: {

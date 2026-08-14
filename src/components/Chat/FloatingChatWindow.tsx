@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ChatInput } from './ChatInput';
+import { ChatConnectionNotice } from './ChatConnectionNotice';
+import { ChatInput, chatInputPlaceholder } from './ChatInput';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatPeerDogMeta } from './ChatPeerDogMeta';
 import { useChatRoomSession } from '../../hooks/useChatRoomSession';
@@ -33,6 +34,7 @@ export function FloatingChatWindow() {
   const {
     myId,
     status,
+    lastError,
     peerInfo,
     peerDog,
     messages,
@@ -41,6 +43,8 @@ export function FloatingChatWindow() {
     draft,
     setDraft,
     sendDraft,
+    retryMessage,
+    discardMessage,
   } = useChatRoomSession(roomId, peerUserId);
 
   const peerNickname = peerInfo?.peerNickname || title;
@@ -87,11 +91,7 @@ export function FloatingChatWindow() {
               className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#4b5563]"
             />
           </div>
-          {status !== 'open' && status !== 'connecting' && (
-            <p className="mt-0.5 text-xs text-amber-700">
-              실시간 연결 끊김 — 메시지 수신이 지연될 수 있어요.
-            </p>
-          )}
+          <ChatConnectionNotice status={status} lastError={lastError} />
         </div>
         <button
           type="button"
@@ -112,6 +112,8 @@ export function FloatingChatWindow() {
           peerProfileImageUrl={peerProfileImageUrl}
           loadingInitial={loadingInitial}
           loadError={loadError}
+          onRetry={retryMessage}
+          onDiscard={discardMessage}
         />
       </div>
 
@@ -119,8 +121,9 @@ export function FloatingChatWindow() {
         value={draft}
         onChange={setDraft}
         onSend={handleSend}
-        disabled={!peerUserId || status === 'connecting'}
-        placeholder={peerUserId ? '메시지를 입력하세요…' : 'peer 정보가 없습니다.'}
+        // 소켓이 열려 있지 않으면 전송 자체가 불가능하다(ChatRoom과 동일 정책).
+        disabled={!peerUserId || status !== 'open'}
+        placeholder={chatInputPlaceholder(peerUserId, status, 'peer 정보가 없습니다.')}
       />
     </div>,
     portalEl,

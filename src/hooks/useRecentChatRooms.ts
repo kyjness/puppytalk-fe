@@ -85,10 +85,13 @@ async function fetchRecentRooms(limit: number): Promise<RecentChatRoom[]> {
   }
 }
 
+/** 인박스 목록 쿼리 키 — 무효화하는 쪽(읽음 처리·실시간 수신)이 같은 키를 써야 한다. */
+export const RECENT_CHAT_ROOMS_KEY = ['chat', 'recent-rooms'] as const;
+
 export function useRecentChatRooms(enabled: boolean, limit = 20) {
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(50, Math.floor(limit))) : 20;
   const query = useQuery({
-    queryKey: ['chat', 'recent-rooms', safeLimit],
+    queryKey: [...RECENT_CHAT_ROOMS_KEY, safeLimit],
     queryFn: () => fetchRecentRooms(safeLimit),
     enabled,
     placeholderData: keepPreviousData,

@@ -6,7 +6,8 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { ChatInput } from '../components/Chat/ChatInput';
+import { ChatConnectionNotice } from '../components/Chat/ChatConnectionNotice';
+import { ChatInput, chatInputPlaceholder } from '../components/Chat/ChatInput';
 import { ChatMessageList } from '../components/Chat/ChatMessageList';
 import { ChatPeerDogMeta } from '../components/Chat/ChatPeerDogMeta';
 import { useChatRoomSession } from '../hooks/useChatRoomSession';
@@ -32,6 +33,7 @@ export function ChatRoom() {
   const {
     myId,
     status,
+    lastError,
     peerInfo,
     peerDog,
     messages,
@@ -40,6 +42,8 @@ export function ChatRoom() {
     draft,
     setDraft,
     sendDraft,
+    retryMessage,
+    discardMessage,
   } = useChatRoomSession(roomId, peerUserId);
 
   const peerNickname = peerInfo?.peerNickname || searchParams.get('title') || '채팅';
@@ -157,11 +161,7 @@ export function ChatRoom() {
               className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-[#4b5563]"
             />
           </div>
-          {status !== 'open' && status !== 'connecting' && (
-            <p className="mt-0.5 text-xs text-amber-700">
-              실시간 연결 끊김 — 메시지 수신이 지연될 수 있어요.
-            </p>
-          )}
+          <ChatConnectionNotice status={status} lastError={lastError} />
         </div>
       </header>
 
@@ -177,6 +177,8 @@ export function ChatRoom() {
           loadingInitial={loadingInitial}
           loadError={loadError}
           topSentinel={topSentinel}
+          onRetry={retryMessage}
+          onDiscard={discardMessage}
         />
       </div>
 
@@ -184,8 +186,10 @@ export function ChatRoom() {
         value={draft}
         onChange={setDraft}
         onSend={handleSend}
-        disabled={!peerUserId || status === 'connecting'}
-        placeholder={peerUserId ? '메시지를 입력하세요…' : 'peer 쿼리가 필요합니다 (?peer=상대방ID)'}
+        // 소켓이 열려 있지 않으면 전송 자체가 불가능하다 — 예전에는 'connecting'만 막아서
+        // 끊긴 상태에서 엔터를 치면 아무 일도 일어나지 않고 피드백도 없었다.
+        disabled={!peerUserId || status !== 'open'}
+        placeholder={chatInputPlaceholder(peerUserId, status, 'peer 쿼리가 필요합니다 (?peer=상대방ID)')}
       />
     </div>
   );

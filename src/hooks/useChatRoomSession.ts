@@ -1,13 +1,13 @@
 // 채팅방 세션 공용 로직 — 전체화면(ChatRoom)과 플로팅(FloatingChatWindow)이 공유한다.
 // 데이터 로드·상대 정보·전송까지만 담당한다. 스크롤은 공통분(하단 고정)만 useStickToBottom이
 // 가져가고, 전체화면 전용인 과거 페이지 위치 복원은 그 화면이 직접 소유한다.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ChatMessageRow } from '../api/api-types.js';
 import { useChat } from '../components/Chat/ChatSocketProvider';
-import type { ChatSocketStatus } from './useChatSocket.js';
+import type { ChatSocketError, ChatSocketStatus } from './useChatSocket.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useChatStore } from '../store/useChatStore.js';
+import { newPendingMessageId, useChatStore } from '../store/useChatStore.js';
 import { calculateDogAge } from '../utils/index.js';
 import { useChatRoomPeerInfo, type ChatRoomPeerInfo } from './useChatRoomPeerInfo';
 import { useMarkChatRoomRead } from './useMarkChatRoomRead';
@@ -26,6 +26,7 @@ export interface ChatRoomSession {
   /** 내 공개 사용자 ID(없으면 빈 문자열). */
   myId: string;
   status: ChatSocketStatus;
+  lastError: ChatSocketError | null;
   peerInfo: ChatRoomPeerInfo | null | undefined;
   peerDog: ChatPeerDog;
   messages: ChatMessageRow[];
@@ -35,13 +36,17 @@ export interface ChatRoomSession {
   setDraft: (v: string) => void;
   /** 초안을 전송하고 낙관적 말풍선을 넣는다. 전송하지 못했으면 false. */
   sendDraft: () => boolean;
+  /** 실패한 말풍선을 지우고 같은 내용으로 다시 보낸다. */
+  retryMessage: (message: ChatMessageRow) => void;
+  /** 실패한 말풍선을 목록에서 버린다. */
+  discardMessage: (id: string) => void;
 }
 
 export function useChatRoomSession(roomId: string, peerUserId: string): ChatRoomSession {
   const { user } = useAuth();
   const myId = user == null ? '' : String(user.userId ?? user.id ?? '').trim();
 
-  const { sendMessage, status } = useChat();
+  const { sendMessage, status, lastError, connectionEpoch } = useChat();
 
   const peerInfoQuery = useChatRoomPeerInfo(Boolean(myId), roomId);
   const peerInfo = peerInfoQuery.data;
@@ -63,7 +68,9 @@ export function useChatRoomSession(roomId: string, peerUserId: string): ChatRoom
   );
 
   const fetchInitialMessages = useChatStore((s) => s.fetchInitialMessages);
-  const appendMessage = useChatStore((s) => s.appendMessage);
+  const fetchGapMessages = useChatStore((s) => s.fetchGapMessages);
+  const appendPendingMessage = useChatStore((s) => s.appendPendingMessage);
+  const removeMessage = useChatStore((s) => s.removeMessage);
   const markRoomRead = useMarkChatRoomRead();
 
   const [draft, setDraft] = useState('');
@@ -80,27 +87,66 @@ export function useChatRoomSession(roomId: string, peerUserId: string): ChatRoom
     });
   }, [roomId, fetchInitialMessages, markRoomRead]);
 
+  // 소켓이 다시 열리면 끊긴 구간을 DB에서 메운다. 실시간은 at-most-once라 그 사이 메시지는
+  // 다시 오지 않는다 — 이 재조회가 없으면 유실분이 화면에 영영 나타나지 않는다.
+  // roomId 초기 로드와 겹치지 않도록 epoch가 **실제로 바뀐 경우에만** 돌고,
+  // 스크롤은 건드리지 않는다(사용자가 과거를 읽는 중일 수 있다).
+  const syncedEpochRef = useRef(connectionEpoch);
+  useEffect(() => {
+    if (syncedEpochRef.current === connectionEpoch) return;
+    syncedEpochRef.current = connectionEpoch;
+    if (!roomId) return;
+    void fetchGapMessages(roomId).catch((err: unknown) => {
+      console.warn('[useChatRoomSession] 재연결 재동기 실패', err);
+    });
+  }, [connectionEpoch, roomId, fetchGapMessages]);
+
+  const sendText = useCallback(
+    (text: string): boolean => {
+      if (!roomId || !peerUserId || !text) return false;
+      if (!sendMessage(peerUserId, text)) return false;
+      if (myId) {
+        // `ws.send()` 성공은 서버 저장을 보장하지 않는다 — 낙관적 말풍선은 확정 대기 상태로
+        // 들어가고, 에코가 안 오면 스토어가 실패로 뒤집는다.
+        appendPendingMessage(roomId, {
+          id: newPendingMessageId(),
+          roomId,
+          senderId: myId,
+          content: text,
+          isRead: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      return true;
+    },
+    [appendPendingMessage, myId, peerUserId, roomId, sendMessage],
+  );
+
   const sendDraft = useCallback((): boolean => {
-    const text = draft.trim();
-    if (!roomId || !peerUserId || !text) return false;
-    if (!sendMessage(peerUserId, text)) return false;
-    if (myId) {
-      appendMessage(roomId, {
-        id: `pending-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`}`,
-        roomId,
-        senderId: myId,
-        content: text,
-        isRead: true,
-        createdAt: new Date().toISOString(),
-      });
-    }
+    if (!sendText(draft.trim())) return false;
     setDraft('');
     return true;
-  }, [appendMessage, draft, myId, peerUserId, roomId, sendMessage]);
+  }, [draft, sendText]);
+
+  const retryMessage = useCallback(
+    (message: ChatMessageRow) => {
+      removeMessage(roomId, message.id);
+      sendText(message.content);
+    },
+    [removeMessage, roomId, sendText],
+  );
+
+  const discardMessage = useCallback(
+    (id: string) => {
+      removeMessage(roomId, id);
+    },
+    [removeMessage, roomId],
+  );
 
   return {
     myId,
     status,
+    lastError,
     peerInfo,
     peerDog,
     messages,
@@ -109,5 +155,7 @@ export function useChatRoomSession(roomId: string, peerUserId: string): ChatRoom
     draft,
     setDraft,
     sendDraft,
+    retryMessage,
+    discardMessage,
   };
 }
