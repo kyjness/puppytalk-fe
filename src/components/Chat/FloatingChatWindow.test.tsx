@@ -28,9 +28,15 @@ vi.mock('../../context/AuthContext.jsx', () => ({
   }),
 }));
 
-// WebSocket은 이 테스트의 관심사가 아니다 — 창이 붙는지만 본다.
+// WebSocket 자체는 여기 관심사가 아니다 — 소켓이 노출하는 connectionEpoch만 흉내 낸다.
+const socket = vi.hoisted(() => ({ epoch: 1 }));
 vi.mock('./ChatSocketProvider', () => ({
-  useChat: () => ({ sendMessage: vi.fn(() => true), status: 'open', lastError: null }),
+  useChat: () => ({
+    sendMessage: vi.fn(() => true),
+    status: 'open',
+    lastError: null,
+    connectionEpoch: socket.epoch,
+  }),
 }));
 
 const { FloatingChatWindow } = await import('./FloatingChatWindow.js');
@@ -45,7 +51,15 @@ beforeEach(() => {
   resetApiMock(api, { items: [] });
   document.getElementById(PORTAL_ID)?.remove();
   useChatUiStore.setState({ isChatInboxOpen: false, floatingRoom: null });
+  socket.epoch = 1;
 });
+
+/** 메시지 목록 재조회만 센다(상대 정보 조회 등 다른 GET은 제외). */
+function messageFetchCount(roomId: string): number {
+  return api.get.mock.calls.filter((c: unknown[]) =>
+    String(c[0]).startsWith(`/chat/rooms/${roomId}/messages`),
+  ).length;
+}
 
 describe('FloatingChatWindow', () => {
   it('방이 열리면 창이 문서에 붙는다', async () => {
@@ -80,5 +94,37 @@ describe('FloatingChatWindow', () => {
     useChatUiStore.getState().openFloatingRoom(room);
     const dialog = await screen.findByRole('dialog', { name: '플로팅 채팅창' });
     expect(document.getElementById(PORTAL_ID)?.contains(dialog)).toBe(true);
+  });
+
+  it('소켓이 다시 열리면 끊긴 구간을 DB에서 재동기한다', async () => {
+    const { rerender } = render(<FloatingChatWindow />, { wrapper });
+    useChatUiStore.getState().openFloatingRoom({
+      roomId: 'room-9',
+      peerUserId: 'peer-9',
+      title: '코코아빠',
+    });
+    await screen.findByRole('dialog', { name: '플로팅 채팅창' });
+    await waitFor(() => expect(messageFetchCount('room-9')).toBe(1));
+
+    // 재연결 = epoch 증가. 실시간은 at-most-once라 끊긴 사이 메시지는 다시 오지 않는다 —
+    // 이 재조회가 없으면 유실분이 화면에 영영 나타나지 않는다.
+    socket.epoch = 2;
+    rerender(<FloatingChatWindow />);
+    await waitFor(() => expect(messageFetchCount('room-9')).toBe(2));
+  });
+
+  it('연결이 그대로면 리렌더만으로 재조회하지 않는다', async () => {
+    const { rerender } = render(<FloatingChatWindow />, { wrapper });
+    useChatUiStore.getState().openFloatingRoom({
+      roomId: 'room-8',
+      peerUserId: 'peer-8',
+      title: '코코아빠',
+    });
+    await screen.findByRole('dialog', { name: '플로팅 채팅창' });
+    await waitFor(() => expect(messageFetchCount('room-8')).toBe(1));
+
+    rerender(<FloatingChatWindow />);
+    rerender(<FloatingChatWindow />);
+    expect(messageFetchCount('room-8')).toBe(1);
   });
 });

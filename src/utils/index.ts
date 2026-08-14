@@ -1,6 +1,12 @@
 // Barrel: 기존 import 경로(`utils/index.js`) 유지.
 export { escapeHtml, escapeAttr } from './html.js';
-export { formatDateTime } from './date.js';
+export {
+  formatDateTime,
+  parseDateSafe,
+  dayKey,
+  formatDayDivider,
+  formatChatTime12h,
+} from './date.js';
 export {
   getApiErrorMessage,
   getClientErrorCode,

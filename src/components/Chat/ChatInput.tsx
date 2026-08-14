@@ -1,6 +1,20 @@
 // 채팅 입력: Enter 전송, Shift+Enter 줄바꿈, 자동 높이 조절.
 import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 
+import type { ChatSocketStatus } from '../../hooks/useChatSocket.js';
+
+/** 입력이 왜 막혔는지 자리표시자로 알린다 — 비활성 입력창은 이유가 보여야 한다. */
+export function chatInputPlaceholder(
+  peerUserId: string,
+  status: ChatSocketStatus,
+  noPeerText: string,
+): string {
+  if (!peerUserId) return noPeerText;
+  if (status === 'connecting') return '연결 중…';
+  if (status !== 'open') return '연결이 끊겨 지금은 보낼 수 없어요 — 재연결 중…';
+  return '메시지를 입력하세요…';
+}
+
 export interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;

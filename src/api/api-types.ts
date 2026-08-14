@@ -23,6 +23,12 @@ export type AuthorInfo = Schemas["AuthorInfo"];
 export type ImageUploadResponse = Schemas["ImageUploadResponse"];
 export type SignupImageUploadData = Schemas["SignupImageUploadData"];
 
+/**
+ * 낙관적으로 그린 말풍선의 전달 상태. 서버가 확정한 메시지에는 없다.
+ * `failed`는 "서버에 도달했다는 증거를 못 받았다"는 뜻 — 전송 실패일 수도, 응답 유실일 수도 있다.
+ */
+export type ChatDeliveryStatus = 'pending' | 'failed';
+
 /** 채팅 메시지 1건 (REST·WS 공통, camelCase UI용) */
 export interface ChatMessageRow {
   id: string;
@@ -31,6 +37,7 @@ export interface ChatMessageRow {
   content: string;
   isRead: boolean;
   createdAt: string;
+  deliveryStatus?: ChatDeliveryStatus;
 }
 
 /** 기존 이미지 1건 (서버 FileInfo에서 매핑; UI는 imageId·fileUrl만 사용) */
