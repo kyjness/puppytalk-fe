@@ -2,6 +2,7 @@
 import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiGet, apiPost } from '../api/typed.js';
+import { DEMO_ACCOUNT } from '../config.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage, isValidEmail, unwrapApiData } from '../utils/index.js';
 
@@ -41,30 +42,10 @@ export function useLogin() {
     setFormError('');
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault();
-      setEmailError('');
-      setPasswordError('');
-      setFormError('');
-
-      const emailTrim = email.trim();
-      const passwordVal = password ?? '';
-
-      let hasError = false;
-      if (!emailTrim) {
-        setEmailError('이메일을 입력해주세요.');
-        hasError = true;
-      } else if (!isValidEmail(emailTrim)) {
-        setEmailError(getApiErrorMessage('INVALID_EMAIL_FORMAT'));
-        hasError = true;
-      }
-      if (!passwordVal.trim()) {
-        setPasswordError('비밀번호를 입력해주세요.');
-        hasError = true;
-      }
-      if (hasError) return;
-
+  // 실제 로그인 요청과 세션 반영. 폼 제출과 데모 로그인이 함께 쓴다 — 데모 버튼은 입력칸을
+  // 채운 직후 바로 제출해야 하는데, 상태 반영을 한 렌더 기다릴 필요가 없도록 값을 인자로 받는다.
+  const performLogin = useCallback(
+    async (emailTrim: string, passwordVal: string) => {
       setSubmitting(true);
       try {
         const result = (await apiPost('/v1/auth/login', {
@@ -121,8 +102,47 @@ export function useLogin() {
         setSubmitting(false);
       }
     },
-    [email, password, from, setUser, navigate]
+    [from, setUser, navigate]
   );
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      setEmailError('');
+      setPasswordError('');
+      setFormError('');
+
+      const emailTrim = email.trim();
+      const passwordVal = password ?? '';
+
+      let hasError = false;
+      if (!emailTrim) {
+        setEmailError('이메일을 입력해주세요.');
+        hasError = true;
+      } else if (!isValidEmail(emailTrim)) {
+        setEmailError(getApiErrorMessage('INVALID_EMAIL_FORMAT'));
+        hasError = true;
+      }
+      if (!passwordVal.trim()) {
+        setPasswordError('비밀번호를 입력해주세요.');
+        hasError = true;
+      }
+      if (hasError) return;
+
+      await performLogin(emailTrim, passwordVal);
+    },
+    [email, password, performLogin]
+  );
+
+  // 가입 없이 둘러보기. 입력칸도 함께 채워 무슨 계정으로 들어가는지 보이게 한다.
+  const handleDemoLogin = useCallback(async () => {
+    setEmail(DEMO_ACCOUNT.email);
+    setPassword(DEMO_ACCOUNT.password);
+    setEmailError('');
+    setPasswordError('');
+    setFormError('');
+    await performLogin(DEMO_ACCOUNT.email, DEMO_ACCOUNT.password);
+  }, [performLogin]);
 
   return {
     email,
@@ -135,6 +155,7 @@ export function useLogin() {
     from,
     navigate,
     handleSubmit,
+    handleDemoLogin,
     handleEmailChange,
     handlePasswordChange,
   };

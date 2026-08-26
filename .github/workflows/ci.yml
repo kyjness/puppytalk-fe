@@ -11,17 +11,18 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
@@ -43,3 +44,23 @@ jobs:
       # CI에서 계약을 지키는 건 커밋된 schema.d.ts 기반의 typecheck다.
       - name: Build
         run: pnpm build
+
+  dependency-review:
+    name: 의존성 리뷰 (PR 한정 · 새로 들어온 취약점만)
+    # 이 PR이 **새로 들여온** 취약 의존성만 막는다 — 기존 부채에 발이 묶이지 않으면서
+    # 회귀는 확실히 잡는 조합. push에는 비교할 base가 없어 PR 전용.
+    # FE는 지금 의존성 스캔이 전혀 없어서(BE의 pip-audit에 해당하는 것이 없다) 이 잡이
+    # 그 자리를 메운다.
+    #
+    # 리포의 Dependency graph 설정이 켜져 있어야 동작한다(UI 전용 토글). 꺼지면 이 잡은
+    # "not supported"로 실패한다 — 그때 continue-on-error로 덮지 말고 설정을 다시 켤 것.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high

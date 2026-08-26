@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Zap } from 'lucide-react';
+import { Heart, Zap } from 'lucide-react';
 import { useTrendingPosts, type TrendingPostRow } from '../hooks/useTrendingPosts.js';
 import { getTrendingPostCategoryLabel } from '../utils/postMeta.js';
 
@@ -41,7 +41,8 @@ function TrendingRow({
   onOpen: (id: string | number) => void;
 }) {
   const categoryLabel = getTrendingPostCategoryLabel(post.categoryId);
-  const commentCount = Number.isFinite(post.commentCount) ? post.commentCount : 0;
+  // 랭킹 점수에서 가장 무거운 신호가 좋아요다 — 행에 그 수치를 보여 순위를 납득시킨다.
+  const likeCount = Number.isFinite(post.likeCount) ? post.likeCount : 0;
 
   return (
     <li
@@ -62,10 +63,10 @@ function TrendingRow({
       </button>
       <span
         className="flex shrink-0 items-center gap-0.5 text-[14px] tabular-nums text-[#64748b]"
-        aria-label={`댓글 ${commentCount}개`}
+        aria-label={`좋아요 ${likeCount}개`}
       >
-        <MessageCircle size={15} strokeWidth={2} aria-hidden className="opacity-80" />
-        {commentCount}
+        <Heart size={15} strokeWidth={2} aria-hidden className="opacity-80" />
+        {likeCount}
       </span>
     </li>
   );
