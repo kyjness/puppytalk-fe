@@ -1,5 +1,8 @@
 # PuppyTalk Frontend
 
+> 🐕 **라이브 데모 — [puppytalk.shop](https://puppytalk.shop)**
+> API: [api.puppytalk.shop/v1/docs](https://api.puppytalk.shop/v1/docs) · 데모 계정은 로그인 화면의 *"데모 계정으로 둘러보기"*
+
 반려견 커뮤니티 **PuppyTalk**의 웹 클라이언트. React 19 + Vite 기반 SPA(CSR)로
 회원가입·게시글·댓글·좋아요·해시태그 트렌드·프로필/차단·**1:1 DM 채팅(WebSocket)**·
 **실시간 알림(SSE)**·관리자 기능을 제공합니다.
