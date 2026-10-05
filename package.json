@@ -20,13 +20,13 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.9",
-    "axios": "^1.13.6",
+    "axios": "^1.20.0",
     "event-source-polyfill": "^1.0.31",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-intersection-observer": "^9.16.0",
-    "react-router-dom": "^7.13.1",
+    "react-router-dom": "^7.18.4",
     "zustand": "^5.0.2"
   },
   "optionalDependencies": {
@@ -53,12 +53,20 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.2",
-    "vite": "^8.0.0-beta.13",
-    "vitest": "4"
+    "vite": "^8.3.2",
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "overrides": {
-      "vite": "^8.0.0-beta.13"
+      "vite": "^8.0.0-beta.13",
+      "@babel/core@<7.29.6": "^7.29.6",
+      "baseline-browser-mapping@<2.11.0": "^2.11.0",
+      "brace-expansion@<1.1.16": "^1.1.16",
+      "brace-expansion@>=2.0.0 <2.1.2": "^2.1.2",
+      "brace-expansion@>=5.0.0 <5.0.7": "^5.0.7",
+      "browserslist@<4.28.7": "^4.28.7",
+      "js-yaml@>=4.0.0 <4.3.2": "^4.3.2",
+      "undici@>=8.0.0 <8.10.2": "^8.10.2"
     }
   }
 }
